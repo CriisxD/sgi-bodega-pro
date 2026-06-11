@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
   FilePlus,
   Search,
@@ -228,7 +230,7 @@ export default function NuevoValePage() {
         <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
           <div 
             className="h-full bg-primary transition-all duration-500 ease-out"
-            style={{ width: \`\${progressPercent}%\` }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
@@ -251,13 +253,13 @@ export default function NuevoValePage() {
                       setValeType(type.value);
                       setCart([]); // Reset cart on type change
                     }}
-                    className={\`flex items-center gap-4 p-4 rounded-xl border text-left transition-all \${
+                    className={`flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${
                       valeType === type.value
                         ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
                         : 'border-border/50 hover:border-primary/50 bg-card/50'
-                    }\`}
+                    }`}
                   >
-                    <div className={\`w-12 h-12 rounded-full flex items-center justify-center shrink-0 \${valeType === type.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}\`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${valeType === type.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                       <Icon className="w-6 h-6" />
                     </div>
                     <div>
@@ -299,11 +301,11 @@ export default function NuevoValePage() {
                   <button
                     key={worker.id}
                     onClick={() => setSelectedWorker(worker.id)}
-                    className={\`flex items-center justify-between p-4 rounded-xl border text-left transition-all \${
+                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
                       selectedWorker === worker.id
                         ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
                         : 'border-border/50 hover:border-primary/50 bg-card/50'
-                    }\`}
+                    }`}
                   >
                     <div>
                       <p className="font-bold">{worker.name}</p>
@@ -359,9 +361,9 @@ export default function NuevoValePage() {
                   return (
                     <div
                       key={product.id}
-                      className={\`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border transition-all \${
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border transition-all ${
                         inCart ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-card/50'
-                      }\`}
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
@@ -370,7 +372,7 @@ export default function NuevoValePage() {
                         <div>
                           <p className="font-semibold text-sm leading-tight">{product.name}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Stock: {product.stock} {product.unit} {product.category && \` • \${product.category.name}\`}
+                            Stock: {product.stock} {product.unit} {product.category && ` • ${product.category.name}`}
                           </p>
                         </div>
                       </div>
