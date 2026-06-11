@@ -32,9 +32,9 @@ interface CartItem {
   quantity: number | ''; // Permite string vacío temporalmente al borrar
 }
 
-const valeTypeOptions: { value: ValeType; label: string; description: string; icon: any }[] = [
-  { value: 'material', label: 'Material / Herramientas', description: 'Tornillos, pintura, herramientas de uso, etc.', icon: Wrench },
-  { value: 'epp', label: 'EPP', description: 'Elementos de Protección Personal (Requiere firma)', icon: HardHat },
+const valeTypeOptions: { value: ValeType; label: string; description: string; icon: any; roles: string[] }[] = [
+  { value: 'material', label: 'Material / Herramientas', description: 'Tornillos, pintura, herramientas de uso, etc.', icon: Wrench, roles: ['admin', 'supervisor'] },
+  { value: 'epp', label: 'EPP', description: 'Elementos de Protección Personal (Requiere firma)', icon: HardHat, roles: ['admin', 'prevencionista'] },
 ];
 
 export default function NuevoValePage() {
@@ -255,7 +255,7 @@ export default function NuevoValePage() {
               </Button>
             </div>
             <CardContent className="grid gap-4 py-4 border-t border-border/10 mt-2">
-              {valeTypeOptions.map((type) => {
+              {valeTypeOptions.filter(t => t.roles.includes(profile?.role || '')).map((type) => {
                 const Icon = type.icon;
                 return (
                   <button
