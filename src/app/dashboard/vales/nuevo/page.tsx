@@ -273,10 +273,12 @@ export default function NuevoValePage() {
                 );
               })}
             </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-              <Button variant="ghost" onClick={() => router.back()}>Cancelar</Button>
-              <Button onClick={() => setStep(2)}>
-                Siguiente <ArrowRight className="w-4 h-4 ml-2" />
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
+              <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                Cancelar
+              </Button>
+              <Button onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </CardFooter>
           </>
@@ -290,16 +292,16 @@ export default function NuevoValePage() {
             </CardHeader>
             <CardContent className="space-y-4 py-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nombre o RUT..."
-                  className="pl-10 h-12 text-base"
+                  className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
                   value={workerSearch}
                   onChange={(e) => setWorkerSearch(e.target.value)}
                   autoFocus
                 />
               </div>
-              <div className="grid gap-2 max-h-[350px] overflow-y-auto pr-1">
+              <div className="grid gap-3 max-h-[50vh] overflow-y-auto pr-1 pb-2">
                 {filteredWorkers.map((worker) => (
                   <button
                     key={worker.id}
@@ -328,16 +330,17 @@ export default function NuevoValePage() {
                 )}
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
               <Button 
                 variant="ghost" 
                 onClick={() => setStep(1)} 
                 disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
+                className="w-full sm:w-auto h-12 sm:h-10 text-base"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Atrás
+                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
               </Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedWorker} className="px-8">
-                Siguiente <ArrowRight className="w-4 h-4 ml-2" />
+              <Button onClick={() => setStep(3)} disabled={!selectedWorker} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </CardFooter>
           </>
@@ -352,17 +355,17 @@ export default function NuevoValePage() {
             <CardContent className="space-y-4 py-2">
               {/* Buscador */}
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
                 <Input
                   placeholder="Buscar producto en bodega..."
-                  className="pl-10 h-12 text-base"
+                  className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                 />
               </div>
 
               {/* Lista de Productos */}
-              <div className="grid gap-3 max-h-[300px] overflow-y-auto pr-1">
+              <div className="grid gap-3 max-h-[50vh] overflow-y-auto pr-1 pb-2">
                 {filteredProducts.map((product) => {
                   const inCart = cart.find((c) => c.product.id === product.id);
                   return (
@@ -433,12 +436,12 @@ export default function NuevoValePage() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-              <Button variant="ghost" onClick={() => setStep(2)}>
-                <ArrowLeft className="w-4 h-4 mr-2" /> Atrás
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
+              <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
               </Button>
-              <Button onClick={() => setStep(4)} disabled={cart.length === 0} className="px-8">
-                Revisar <ArrowRight className="w-4 h-4 ml-2" />
+              <Button onClick={() => setStep(4)} disabled={cart.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Revisar <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </CardFooter>
           </>
@@ -488,15 +491,15 @@ export default function NuevoValePage() {
               </div>
 
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto">
-                <ArrowLeft className="w-4 h-4 mr-2" /> Editar Ítems
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
+              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
               </Button>
-              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto font-bold shadow-lg shadow-primary/25">
+              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-primary/25">
                 {submitting ? (
-                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Creando...</>
+                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Creando...</>
                 ) : (
-                  <><FilePlus className="w-5 h-5 mr-2" /> Crear y Enviar a Bodega</>
+                  <><FilePlus className="w-6 h-6 mr-2" /> Crear y Enviar a Bodega</>
                 )}
               </Button>
             </CardFooter>
