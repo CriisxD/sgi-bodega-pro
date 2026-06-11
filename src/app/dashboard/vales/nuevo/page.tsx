@@ -273,7 +273,7 @@ export default function NuevoValePage() {
                 );
               })}
             </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/10 pt-4 bg-muted/10">
+            <CardFooter className="flex justify-between border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
               <Button variant="ghost" onClick={() => router.back()}>Cancelar</Button>
               <Button onClick={() => setStep(2)}>
                 Siguiente <ArrowRight className="w-4 h-4 ml-2" />
@@ -328,7 +328,7 @@ export default function NuevoValePage() {
                 )}
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/10 pt-4 bg-muted/10">
+            <CardFooter className="flex justify-between border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
               <Button 
                 variant="ghost" 
                 onClick={() => setStep(1)} 
@@ -433,7 +433,7 @@ export default function NuevoValePage() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between border-t border-border/10 pt-4 bg-muted/10">
+            <CardFooter className="flex justify-between border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
               <Button variant="ghost" onClick={() => setStep(2)}>
                 <ArrowLeft className="w-4 h-4 mr-2" /> Atrás
               </Button>
@@ -488,7 +488,7 @@ export default function NuevoValePage() {
               </div>
 
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10">
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 border-t border-border/10 p-4 bg-muted/10 sticky bottom-16 md:bottom-0 z-20 rounded-b-xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
               <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Editar Ítems
               </Button>
