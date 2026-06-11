@@ -55,11 +55,14 @@ export default function NuevoValePage() {
   const [success, setSuccess] = useState(false);
   const [valeNumber, setValeNumber] = useState<number | null>(null);
 
-  // Prevencionista salta el paso 1 y va directo a EPP
+  // Auto-saltar paso 1 según el rol
   useEffect(() => {
     if (profile?.role === 'prevencionista') {
       setValeType('epp');
-      setStep(2); // Salta el tipo de vale
+      setStep(2);
+    } else if (profile?.role === 'supervisor') {
+      setValeType('material');
+      setStep(2);
     }
   }, [profile?.role]);
 
@@ -326,7 +329,11 @@ export default function NuevoValePage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-between border-t border-border/10 pt-4 bg-muted/10">
-              <Button variant="ghost" onClick={() => setStep(profile?.role === 'prevencionista' ? 1 /* can't really go back */ : 1)} disabled={profile?.role === 'prevencionista'}>
+              <Button 
+                variant="ghost" 
+                onClick={() => setStep(1)} 
+                disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" /> Atrás
               </Button>
               <Button onClick={() => setStep(3)} disabled={!selectedWorker} className="px-8">
