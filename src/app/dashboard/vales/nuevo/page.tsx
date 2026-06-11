@@ -246,7 +246,15 @@ export default function NuevoValePage() {
             <CardHeader>
               <CardTitle className="text-xl text-center">¿Qué tipo de vale necesitas?</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 py-4">
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
+              <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                Cancelar
+              </Button>
+              <Button onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+            <CardContent className="grid gap-4 py-4 border-t border-border/10 mt-2">
               {valeTypeOptions.map((type) => {
                 const Icon = type.icon;
                 return (
@@ -273,14 +281,6 @@ export default function NuevoValePage() {
                 );
               })}
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
-              <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto h-12 sm:h-10 text-base">
-                Cancelar
-              </Button>
-              <Button onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
-                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </CardFooter>
           </>
         )}
 
@@ -290,7 +290,20 @@ export default function NuevoValePage() {
             <CardHeader>
               <CardTitle className="text-xl text-center">¿A quién se le entregará?</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 py-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
+              <Button 
+                variant="ghost" 
+                onClick={() => setStep(1)} 
+                disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
+                className="w-full sm:w-auto h-12 sm:h-10 text-base"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
+              </Button>
+              <Button onClick={() => setStep(3)} disabled={!selectedWorker} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+            <CardContent className="space-y-4 py-4 border-t border-border/10 mt-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
                 <Input
@@ -330,19 +343,6 @@ export default function NuevoValePage() {
                 )}
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
-              <Button 
-                variant="ghost" 
-                onClick={() => setStep(1)} 
-                disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
-                className="w-full sm:w-auto h-12 sm:h-10 text-base"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
-              </Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedWorker} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
-                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </CardFooter>
           </>
         )}
 
@@ -352,7 +352,15 @@ export default function NuevoValePage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-xl text-center">Agrega los ítems al vale</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 py-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
+              <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
+              </Button>
+              <Button onClick={() => setStep(4)} disabled={cart.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Revisar <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+            <CardContent className="space-y-4 py-4 border-t border-border/10 mt-2">
               {/* Buscador */}
               <div className="relative mb-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
@@ -436,14 +444,6 @@ export default function NuevoValePage() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
-              <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
-              </Button>
-              <Button onClick={() => setStep(4)} disabled={cart.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
-                Revisar <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </CardFooter>
           </>
         )}
 
@@ -455,7 +455,19 @@ export default function NuevoValePage() {
                 <CheckCircle className="w-6 h-6 text-success" /> Resumen del Vale
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 py-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
+              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
+              </Button>
+              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-primary/25">
+                {submitting ? (
+                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Creando...</>
+                ) : (
+                  <><FilePlus className="w-6 h-6 mr-2" /> Crear y Enviar a Bodega</>
+                )}
+              </Button>
+            </div>
+            <CardContent className="space-y-6 py-4 border-t border-border/10 mt-2">
               
               {/* Info Worker */}
               <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
@@ -491,18 +503,6 @@ export default function NuevoValePage() {
               </div>
 
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 bg-muted/10 rounded-b-xl">
-              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
-              </Button>
-              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-primary/25">
-                {submitting ? (
-                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Creando...</>
-                ) : (
-                  <><FilePlus className="w-6 h-6 mr-2" /> Crear y Enviar a Bodega</>
-                )}
-              </Button>
-            </CardFooter>
           </>
         )}
 
