@@ -11,6 +11,7 @@ import { FileText, Clock, ArrowRight, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const valeTypeLabels: Record<string, string> = {
   epp: 'EPP',
@@ -29,6 +30,7 @@ const valeTypeBadgeColors: Record<string, string> = {
 export default function DashboardPage() {
   const { profile } = useAuth();
   const supabase = createClient();
+  const router = useRouter();
   const [stats, setStats] = useState({
     valesPendientes: 0,
     valesHoy: 0,
@@ -143,11 +145,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Botón rápido gigante para celular */}
-        <Button asChild size="lg" className="w-full sm:w-auto shadow-lg shadow-primary/25 font-bold h-14 sm:h-11 text-base">
-          <Link href="/dashboard/vales/nuevo">
-            <Plus className="w-6 h-6 sm:w-5 sm:h-5 mr-2" />
-            Crear Nuevo Vale
-          </Link>
+        <Button 
+          onClick={() => router.push('/dashboard/vales/nuevo')}
+          size="lg" 
+          className="w-full sm:w-auto shadow-lg shadow-primary/25 font-bold h-14 sm:h-11 text-base"
+        >
+          <Plus className="w-6 h-6 sm:w-5 sm:h-5 mr-2" />
+          Crear Nuevo Vale
         </Button>
       </div>
 
