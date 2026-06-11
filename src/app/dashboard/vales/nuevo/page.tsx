@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
@@ -54,6 +54,13 @@ export default function NuevoValePage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [valeNumber, setValeNumber] = useState<number | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    setTimeout(() => {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  };
 
   // Auto-saltar paso 1 según el rol
   useEffect(() => {
@@ -238,7 +245,7 @@ export default function NuevoValePage() {
         </div>
       </div>
 
-      <Card className="card-glow border-border/50 shadow-xl">
+      <Card ref={cardRef} className="card-glow border-border/50 shadow-xl">
         
         {/* PASO 1: Tipo de Vale */}
         {step === 1 && (
@@ -311,6 +318,7 @@ export default function NuevoValePage() {
                   className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
                   value={workerSearch}
                   onChange={(e) => setWorkerSearch(e.target.value)}
+                  onBlur={scrollToTop}
                   autoFocus
                 />
               </div>
@@ -369,6 +377,7 @@ export default function NuevoValePage() {
                   className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
+                  onBlur={scrollToTop}
                 />
               </div>
 
