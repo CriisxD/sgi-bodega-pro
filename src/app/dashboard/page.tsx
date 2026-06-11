@@ -144,15 +144,17 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Botón rápido gigante para celular */}
-        <Button 
-          onClick={() => router.push('/dashboard/vales/nuevo')}
-          size="lg" 
-          className="w-full sm:w-auto shadow-lg shadow-primary/25 font-bold h-14 sm:h-11 text-base"
-        >
-          <Plus className="w-6 h-6 sm:w-5 sm:h-5 mr-2" />
-          Crear Nuevo Vale
-        </Button>
+        {/* Botón rápido gigante para celular (Oculto para bodeguero) */}
+        {profile?.role !== 'bodeguero' && (
+          <Button 
+            onClick={() => router.push('/dashboard/vales/nuevo')}
+            size="lg" 
+            className="w-full sm:w-auto shadow-lg shadow-primary/25 font-bold h-14 sm:h-11 text-base"
+          >
+            <Plus className="w-6 h-6 sm:w-5 sm:h-5 mr-2" />
+            Crear Nuevo Vale
+          </Button>
+        )}
       </div>
 
       {/* Stats Grid */}
