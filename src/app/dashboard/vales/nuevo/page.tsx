@@ -381,7 +381,7 @@ export default function NuevoValePage() {
               return (
                 <div
                   key={product.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border transition-all ${
                     inCart
                       ? 'border-primary/30 bg-primary/5'
                       : 'border-border/50 bg-card/50'
@@ -401,7 +401,7 @@ export default function NuevoValePage() {
                   </div>
 
                   {inCart ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:ml-auto">
                       <Button
                         size="icon"
                         variant="outline"
@@ -410,9 +410,26 @@ export default function NuevoValePage() {
                       >
                         <Minus className="w-3 h-3" />
                       </Button>
-                      <span className="w-8 text-center text-sm font-medium">
-                        {inCart.quantity}
-                      </span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={product.stock}
+                        className="w-16 h-7 text-center px-1 py-0 text-sm font-medium"
+                        value={inCart.quantity || ''}
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value);
+                          if (isNaN(val)) val = 1; // Default to 1 if empty
+                          
+                          setCart(
+                            cart.map((c) => {
+                              if (c.product.id === product.id) {
+                                return { ...c, quantity: Math.min(Math.max(1, val), product.stock) };
+                              }
+                              return c;
+                            })
+                          );
+                        }}
+                      />
                       <Button
                         size="icon"
                         variant="outline"

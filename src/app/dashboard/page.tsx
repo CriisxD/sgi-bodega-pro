@@ -207,8 +207,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Content Grid */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* Content Grid - Oculto en celulares para simplificar */}
+      <div className="hidden sm:grid lg:grid-cols-2 gap-6">
         {/* Recent Vales */}
         <Card className="card-glow border-border/50">
           <CardHeader className="flex flex-row items-center justify-between pb-2">

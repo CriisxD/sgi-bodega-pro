@@ -318,10 +318,10 @@ export default function ProductosPage() {
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>Producto</TableHead>
-                  <TableHead>Categoría</TableHead>
+                  <TableHead className="hidden sm:table-cell">Categoría</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-right">Mínimo</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead className="hidden md:table-cell text-right">Mínimo</TableHead>
+                  <TableHead className="hidden lg:table-cell">Estado</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -341,7 +341,7 @@ export default function ProductosPage() {
                           {product.name}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
+                      <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
                         {product.category?.name}
                       </TableCell>
                       <TableCell className="text-right font-bold">
@@ -349,10 +349,10 @@ export default function ProductosPage() {
                           {product.stock}
                         </span> {product.unit}
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
+                      <TableCell className="hidden md:table-cell text-right text-muted-foreground">
                         {product.min_stock}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <Badge variant="outline" className={product.active ? 'bg-success/10 text-success border-success/20' : 'bg-muted/50 text-muted-foreground'}>
                           <span className={`status-dot mr-1.5 ${product.active ? 'active' : 'inactive'}`} />
                           {product.active ? 'Activo' : 'Inactivo'}

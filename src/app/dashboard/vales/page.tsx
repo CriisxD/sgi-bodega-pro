@@ -134,12 +134,12 @@ export default function MisValesPage() {
         <div className="grid gap-4">
           {filteredVales.map((vale) => (
             <Card key={vale.id} className="card-glow border-border/50">
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mt-1">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mt-1 shrink-0">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold font-mono">#{vale.vale_number}</span>
                       <Badge
@@ -168,13 +168,13 @@ export default function MisValesPage() {
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="text-left sm:text-right bg-muted/20 p-3 sm:p-0 sm:bg-transparent rounded-lg">
                   <p className="text-sm text-muted-foreground mb-1">
                     Ítems solicitados
                   </p>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-col sm:items-end gap-1">
                     {(vale.items || []).slice(0, 2).map((item) => (
-                      <span key={item.id} className="text-xs font-medium">
+                      <span key={item.id} className="text-xs font-medium truncate max-w-[200px] sm:max-w-none">
                         x{item.quantity} {item.product?.name}
                       </span>
                     ))}
