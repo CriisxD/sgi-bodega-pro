@@ -6,7 +6,8 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { StatsCard } from '@/components/shared/stats-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Clock, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, Clock, ArrowRight, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
@@ -131,13 +132,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">
-          Hola, {profile?.full_name?.split(' ')[0]} 👋
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">
+            Hola, {profile?.full_name?.split(' ')[0]} 👋
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
+          </p>
+        </div>
+
+        {/* Botón rápido gigante para celular */}
+        <Button asChild size="lg" className="w-full sm:w-auto shadow-lg shadow-primary/25 font-bold h-14 sm:h-11 text-base">
+          <Link href="/dashboard/vales/nuevo">
+            <Plus className="w-6 h-6 sm:w-5 sm:h-5 mr-2" />
+            Crear Nuevo Vale
+          </Link>
+        </Button>
       </div>
 
       {/* Stats Grid */}
