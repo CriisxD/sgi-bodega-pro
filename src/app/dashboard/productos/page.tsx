@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,8 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download } from 'lucide-react';
-import type { Product, Category } from '@/lib/types';
+import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10 } from 'lucide-react';
+import type { Product, Category, ProductCategory } from '@/lib/types';
 import { toast } from 'sonner';
 
 export default function ProductosPage() {
@@ -33,6 +34,8 @@ export default function ProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name_asc');
   const [loading, setLoading] = useState(true);
 
   // New/Edit modal states
@@ -70,10 +73,33 @@ export default function ProductosPage() {
     fetchCategories();
   }, [supabase]);
 
-  const filteredProducts = products.filter(p => {
-    const s = search.toLowerCase();
-    return p.name.toLowerCase().includes(s) || (p.category?.name || '').toLowerCase().includes(s);
-  });
+  const filteredProducts = useMemo(() => {
+    let result = products.filter(p => {
+      const s = search.toLowerCase();
+      const matchesSearch = p.name.toLowerCase().includes(s) || (p.category?.name || '').toLowerCase().includes(s);
+      const matchesTab = activeTab === 'all' || p.category?.type === activeTab;
+      return matchesSearch && matchesTab;
+    });
+
+    switch (sortBy) {
+      case 'name_asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name_desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'stock_asc':
+        result.sort((a, b) => a.stock - b.stock);
+        break;
+      case 'stock_desc':
+        result.sort((a, b) => b.stock - a.stock);
+        break;
+      case 'status':
+        result.sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1));
+        break;
+    }
+    return result;
+  }, [products, search, activeTab, sortBy]);
 
   const toggleProductStatus = async (id: string, currentStatus: boolean) => {
     try {
@@ -154,9 +180,9 @@ export default function ProductosPage() {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = 'Nombre,Categoria,Stock_Inicial,Stock_Minimo,Unidad\n';
-    const example1 = 'Guantes de Cuero,EPP,50,10,par\n';
-    const example2 = 'Cemento 25kg,Materiales,100,20,un\n';
+    const headers = 'Nombre,Categoria,Tipo_Principal,Stock_Inicial,Stock_Minimo,Unidad\n';
+    const example1 = 'Guantes de Cuero,Guantes,epp,50,10,par\n';
+    const example2 = 'Cemento 25kg,Materiales,material,100,20,un\n';
     const csvContent = headers + example1 + example2;
     
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -186,6 +212,8 @@ export default function ProductosPage() {
           for (const row of rows) {
             const name = row.Nombre?.trim();
             const catName = row.Categoria?.trim();
+            const rawType = row.Tipo_Principal?.trim()?.toLowerCase();
+            
             if (!name || !catName) {
               errorCount++;
               continue;
@@ -194,9 +222,12 @@ export default function ProductosPage() {
             // Find or create category
             let catId = categories.find(c => c.name.toLowerCase() === catName.toLowerCase())?.id;
             if (!catId) {
+              const validTypes = ['epp', 'material', 'herramienta', 'consumible', 'aseo'];
+              const typeToSave = validTypes.includes(rawType) ? rawType : 'material';
+
               const { data: newCat, error: catError } = await supabase
                 .from('categories')
-                .insert({ name: catName, type: 'material' })
+                .insert({ name: catName, type: typeToSave })
                 .select('id')
                 .single();
               if (catError) {
@@ -205,7 +236,7 @@ export default function ProductosPage() {
               }
               catId = newCat.id;
               // Add to local state so subsequent rows use it
-              setCategories(prev => [...prev, { id: catId, name: catName, type: 'material' } as Category]);
+              setCategories(prev => [...prev, { id: catId, name: catName, type: typeToSave } as Category]);
             }
 
             const stock = parseInt(row.Stock_Inicial) || 0;
@@ -300,16 +331,40 @@ export default function ProductosPage() {
       </div>
 
       <Card className="card-glow border-border/50">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Listado</CardTitle>
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar producto..."
-              className="pl-9 h-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+        <CardHeader className="pb-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto pb-1">
+            <TabsList className="h-9">
+              <TabsTrigger value="all">Todos</TabsTrigger>
+              <TabsTrigger value="material">Materiales</TabsTrigger>
+              <TabsTrigger value="epp">EPP</TabsTrigger>
+              <TabsTrigger value="herramienta">Herramientas</TabsTrigger>
+              <TabsTrigger value="consumible">Consumibles</TabsTrigger>
+              <TabsTrigger value="aseo">Aseo</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-56">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar producto..."
+                className="pl-9 h-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] h-9 hidden sm:flex">
+                <SelectValue placeholder="Ordenar por..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name_asc"><div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div></SelectItem>
+                <SelectItem value="name_desc"><div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div></SelectItem>
+                <SelectItem value="stock_asc"><div className="flex items-center"><ArrowDown01 className="w-4 h-4 mr-2" /> Menor Stock</div></SelectItem>
+                <SelectItem value="stock_desc"><div className="flex items-center"><ArrowUp10 className="w-4 h-4 mr-2" /> Mayor Stock</div></SelectItem>
+                <SelectItem value="status">Estado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -496,7 +551,7 @@ export default function ProductosPage() {
                 <li>Sube el archivo aquí.</li>
               </ol>
               <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-                Nota: Si el producto ya existe (coincide el nombre), se actualizará su stock y datos. Si la categoría no existe, se creará automáticamente.
+                Nota: Si la categoría no existe, se creará. En ese caso, llena la columna <b>Tipo_Principal</b> con: <i>epp, material, herramienta, consumible, o aseo</i>. Si el producto ya existe, se actualizará su stock.
               </p>
             </div>
 
