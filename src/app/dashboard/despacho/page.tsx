@@ -49,7 +49,19 @@ export default function DespachoPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedVale, setSelectedVale] = useState<Vale | null>(null);
+  const [editableItems, setEditableItems] = useState<Record<string, number>>({});
   const [processing, setProcessing] = useState(false);
+
+  const handleSelectVale = (vale: Vale) => {
+    setSelectedVale(vale);
+    const initialItems: Record<string, number> = {};
+    vale.items?.forEach(item => {
+      // If stock is less than quantity requested, suggest what is available, otherwise suggest full quantity
+      const stock = item.product?.stock || 0;
+      initialItems[item.id] = Math.min(item.quantity, stock > 0 ? stock : 0);
+    });
+    setEditableItems(initialItems);
+  };
 
   const fetchVales = async () => {
     const { data } = await supabase
@@ -108,17 +120,27 @@ export default function DespachoPage() {
     try {
       // Process each item
       for (const item of selectedVale.items || []) {
+        const qtyToDeliver = editableItems[item.id] ?? item.quantity;
+
+        // Always update the vale_items record to reflect what was actually delivered
+        await supabase
+          .from('vale_items')
+          .update({ quantity_delivered: qtyToDeliver })
+          .eq('id', item.id);
+
+        if (qtyToDeliver <= 0) continue; // Skip stock deduction and records if nothing is delivered
+
         // Decrease stock
         const { error: stockError } = await supabase.rpc('decrease_stock', {
           p_product_id: item.product_id,
-          p_quantity: item.quantity,
+          p_quantity: qtyToDeliver,
         });
 
         // If RPC doesn't exist, do it manually
         if (stockError) {
           await supabase
             .from('products')
-            .update({ stock: (item.product?.stock || 0) - item.quantity })
+            .update({ stock: (item.product?.stock || 0) - qtyToDeliver })
             .eq('id', item.product_id);
         }
 
@@ -126,18 +148,12 @@ export default function DespachoPage() {
         await supabase.from('stock_movements').insert({
           product_id: item.product_id,
           type: 'salida',
-          quantity: item.quantity,
+          quantity: qtyToDeliver,
           reference_type: 'vale',
           reference_id: selectedVale.id,
           notes: `Vale #${selectedVale.vale_number}`,
           created_by: profile.id,
         });
-
-        // Update vale item delivered quantity
-        await supabase
-          .from('vale_items')
-          .update({ quantity_delivered: item.quantity })
-          .eq('id', item.id);
 
         // Type-specific processing
         if (selectedVale.type === 'epp') {
@@ -145,7 +161,7 @@ export default function DespachoPage() {
             worker_id: selectedVale.worker_id,
             product_id: item.product_id,
             vale_id: selectedVale.id,
-            quantity: item.quantity,
+            quantity: qtyToDeliver,
             delivered_at: new Date().toISOString(),
             authorized_by: selectedVale.created_by,
             processed_by: profile.id,
@@ -237,7 +253,7 @@ export default function DespachoPage() {
               <Card
                 key={vale.id}
                 className="card-glow border-border/50 hover:border-primary/20 transition-all cursor-pointer"
-                onClick={() => setSelectedVale(vale)}
+                onClick={() => handleSelectVale(vale)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
@@ -355,11 +371,33 @@ export default function DespachoPage() {
                             Stock actual: {item.product?.stock} {item.product?.unit}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold">x{item.quantity}</p>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Entregar:</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max={item.quantity}
+                              className="w-16 h-8 text-center"
+                              value={editableItems[item.id] !== undefined ? editableItems[item.id] : item.quantity}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value) || 0;
+                                setEditableItems(prev => ({
+                                  ...prev, 
+                                  [item.id]: Math.min(Math.max(val, 0), item.quantity)
+                                }));
+                              }}
+                            />
+                            <span className="text-sm font-bold text-muted-foreground">/ {item.quantity}</span>
+                          </div>
                           {insufficientStock && (
                             <p className="text-[10px] text-destructive font-medium">
-                              ¡Stock insuficiente!
+                              ¡Stock insuficiente para la cantidad pedida!
+                            </p>
+                          )}
+                          {(editableItems[item.id] === 0) && (
+                            <p className="text-[10px] text-muted-foreground font-medium">
+                              No se entregará este ítem
                             </p>
                           )}
                         </div>

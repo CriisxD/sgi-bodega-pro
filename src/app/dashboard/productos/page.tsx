@@ -411,7 +411,7 @@ export default function ProductosPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name')}>
               <SelectTrigger className="w-[140px] h-9 hidden sm:flex">
                 <SelectValue placeholder="Ordenar por..." />
               </SelectTrigger>

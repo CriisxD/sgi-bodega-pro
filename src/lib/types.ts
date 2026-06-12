@@ -151,6 +151,7 @@ export interface ReceptionItem {
   reception_id: string;
   product_id: string;
   quantity: number;
+  unit_price: number | null;
   // Joined
   product?: Product;
 }
