@@ -69,14 +69,7 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today);
 
-      // Stock bajo
-      const { data: lowStock } = await supabase
-        .from('products')
-        .select('id, name, stock, min_stock')
-        .filter('stock', 'lte', 'min_stock' as unknown as number)
-        .eq('active', true)
-        .order('stock', { ascending: true })
-        .limit(10);
+      // JS filtering for stock <= min_stock since direct column comparison in PostgREST is tricky
 
       // Use raw SQL filter for stock <= min_stock
       const { data: allProducts } = await supabase
