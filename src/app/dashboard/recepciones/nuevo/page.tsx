@@ -416,7 +416,7 @@ export default function NuevaRecepcionPage() {
             </div>
             <div className="space-y-2">
               <Label>Categoría</Label>
-              <Select value={newProdCat} onValueChange={setNewProdCat}>
+              <Select value={newProdCat} onValueChange={(val) => setNewProdCat(val || '')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar..." />
                 </SelectTrigger>

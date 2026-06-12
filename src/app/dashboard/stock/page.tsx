@@ -6,7 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Package, AlertTriangle, Filter } from 'lucide-react';
+import { Search, Loader2, Package, AlertTriangle, Filter, History, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import type { Product, Category } from '@/lib/types';
 
 export default function StockPage() {
@@ -16,6 +19,9 @@ export default function StockPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [movements, setMovements] = useState<any[]>([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,6 +64,28 @@ export default function StockPage() {
       supabase.removeChannel(channel);
     };
   }, [supabase]);
+
+  // Fetch movements when a product is selected
+  useEffect(() => {
+    if (!selectedProduct) {
+      setMovements([]);
+      return;
+    }
+    const fetchMovs = async () => {
+      setLoadingMovements(true);
+      const { data } = await supabase
+        .from('stock_movements')
+        .select(`
+          *,
+          profile:profiles!stock_movements_created_by_fkey(full_name)
+        `)
+        .eq('product_id', selectedProduct.id)
+        .order('created_at', { ascending: false });
+      setMovements(data || []);
+      setLoadingMovements(false);
+    };
+    fetchMovs();
+  }, [selectedProduct, supabase]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -128,7 +156,8 @@ export default function StockPage() {
           return (
             <Card
               key={product.id}
-              className={`card-glow overflow-hidden transition-all hover:border-primary/30 ${
+              onClick={() => setSelectedProduct(product)}
+              className={`card-glow overflow-hidden transition-all hover:border-primary/50 cursor-pointer ${
                 isLowStock ? 'bg-destructive/5 border-destructive/20' : 'bg-card border-border/50'
               }`}
             >
@@ -177,6 +206,61 @@ export default function StockPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" /> 
+              Historial de Movimientos
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Producto: <span className="font-bold text-foreground">{selectedProduct?.name}</span>
+            </p>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-2 mt-4 space-y-3">
+            {loadingMovements ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : movements.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                No hay movimientos registrados para este producto.
+              </div>
+            ) : (
+              movements.map((mov) => {
+                const isEntry = mov.type === 'entrada';
+                return (
+                  <div key={mov.id} className="flex gap-4 p-3 rounded-lg border bg-card/50">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isEntry ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
+                      {isEntry ? <ArrowDownRight className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <p className="font-semibold text-sm">
+                          {isEntry ? 'Ingreso de Stock' : 'Salida de Stock'}
+                        </p>
+                        <span className={`font-bold ${isEntry ? 'text-success' : 'text-destructive'}`}>
+                          {isEntry ? '+' : '-'}{mov.quantity}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(mov.created_at), "d MMMM yyyy, HH:mm", { locale: es })}
+                      </p>
+                      <div className="mt-2 text-xs flex flex-wrap gap-x-4 gap-y-1">
+                        <span className="font-medium">Por: {mov.profile?.full_name || 'Sistema'}</span>
+                        <span className="text-muted-foreground">Razón: <span className="uppercase">{mov.reference_type}</span></span>
+                        {mov.notes && <span className="text-muted-foreground col-span-2">Nota: {mov.notes}</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

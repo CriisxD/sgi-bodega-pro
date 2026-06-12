@@ -35,6 +35,8 @@ interface CartItem {
 const valeTypeOptions: { value: ValeType; label: string; description: string; icon: any; roles: string[] }[] = [
   { value: 'material', label: 'Material / Herramientas', description: 'Tornillos, pintura, herramientas de uso, etc.', icon: Wrench, roles: ['admin', 'supervisor'] },
   { value: 'epp', label: 'EPP', description: 'Elementos de Protección Personal (Requiere firma)', icon: HardHat, roles: ['admin', 'prevencionista'] },
+  { value: 'cargo_personal', label: 'Cargo Personal', description: 'Herramientas a cargo (Devolución obligatoria)', icon: Wrench, roles: ['admin', 'supervisor'] },
+  { value: 'uso_diario', label: 'Uso Diario', description: 'Préstamo por turno (Devolver al final del día)', icon: Wrench, roles: ['admin', 'supervisor'] },
 ];
 
 export default function NuevoValePage() {
@@ -46,7 +48,7 @@ export default function NuevoValePage() {
   const [valeType, setValeType] = useState<ValeType>('material');
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedWorker, setSelectedWorker] = useState('');
+  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
   const [workerSearch, setWorkerSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -157,33 +159,37 @@ export default function NuevoValePage() {
     setSubmitting(true);
     try {
       const { data: lastVale } = await supabase.from('vales').select('vale_number').order('vale_number', { ascending: false }).limit(1).single();
-      const nextNumber = (lastVale?.vale_number || 2000) + 1;
+      let nextNumber = (lastVale?.vale_number || 2000);
 
-      const { data: vale, error: valeError } = await supabase.from('vales').insert({
-        vale_number: nextNumber,
-        type: valeType,
-        status: 'pendiente',
-        created_by: profile!.id,
-        worker_id: selectedWorker,
-        notes: notes || null,
-        vale_date: new Date().toISOString(),
-      }).select().single();
+      for (const workerId of selectedWorkers) {
+        nextNumber++;
 
-      if (valeError) throw valeError;
+        const { data: vale, error: valeError } = await supabase.from('vales').insert({
+          vale_number: nextNumber,
+          type: valeType,
+          status: 'pendiente',
+          created_by: profile!.id,
+          worker_id: workerId,
+          notes: notes || null,
+          vale_date: new Date().toISOString(),
+        }).select().single();
 
-      const items = validCart.map((c) => ({
-        vale_id: vale.id,
-        product_id: c.product.id,
-        quantity: c.quantity as number,
-        quantity_delivered: 0,
-      }));
+        if (valeError) throw valeError;
 
-      const { error: itemsError } = await supabase.from('vale_items').insert(items);
-      if (itemsError) throw itemsError;
+        const items = validCart.map((c) => ({
+          vale_id: vale.id,
+          product_id: c.product.id,
+          quantity: c.quantity as number,
+          quantity_delivered: 0,
+        }));
 
-      setValeNumber(nextNumber);
+        const { error: itemsError } = await supabase.from('vale_items').insert(items);
+        if (itemsError) throw itemsError;
+      }
+
+      setValeNumber(nextNumber); // guardamos el ultimo para la interfaz
       setSuccess(true);
-      toast.success(`Vale #${nextNumber} creado exitosamente`);
+      toast.success(selectedWorkers.length > 1 ? `Se crearon ${selectedWorkers.length} vales exitosamente` : `Vale #${nextNumber} creado exitosamente`);
     } catch (error: any) {
       toast.error('Error al crear el vale: ' + error.message);
     } finally {
@@ -200,15 +206,19 @@ export default function NuevoValePage() {
         <div>
           <h2 className="text-2xl font-bold">¡Vale Enviado!</h2>
           <p className="text-muted-foreground mt-2">
-            Vale <span className="font-mono text-primary font-bold">#{valeNumber}</span> creado exitosamente.
-            El bodeguero acaba de recibirlo en su pantalla.
+            {selectedWorkers.length > 1 ? (
+              <>Se crearon <span className="font-mono text-primary font-bold">{selectedWorkers.length} vales</span> exitosamente.</>
+            ) : (
+              <>Vale <span className="font-mono text-primary font-bold">#{valeNumber}</span> creado exitosamente.</>
+            )}
+            El bodeguero acaba de recibirlos en su pantalla.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={() => {
             setSuccess(false);
             setCart([]);
-            setSelectedWorker('');
+            setSelectedWorkers([]);
             setNotes('');
             setValeNumber(null);
             setStep(profile?.role === 'prevencionista' ? 2 : 1);
@@ -296,6 +306,7 @@ export default function NuevoValePage() {
           <>
             <CardHeader>
               <CardTitle className="text-xl text-center">¿A quién se le entregará?</CardTitle>
+              <p className="text-center text-sm text-muted-foreground">Puedes seleccionar varios para un vale grupal</p>
             </CardHeader>
             <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
               <Button 
@@ -306,7 +317,7 @@ export default function NuevoValePage() {
               >
                 <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
               </Button>
-              <Button onClick={() => setStep(3)} disabled={!selectedWorker} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+              <Button onClick={() => setStep(3)} disabled={selectedWorkers.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
                 Siguiente <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
@@ -326,9 +337,15 @@ export default function NuevoValePage() {
                 {filteredWorkers.map((worker) => (
                   <button
                     key={worker.id}
-                    onClick={() => setSelectedWorker(worker.id)}
+                    onClick={() => {
+                      if (selectedWorkers.includes(worker.id)) {
+                        setSelectedWorkers(selectedWorkers.filter(id => id !== worker.id));
+                      } else {
+                        setSelectedWorkers([...selectedWorkers, worker.id]);
+                      }
+                    }}
                     className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
-                      selectedWorker === worker.id
+                      selectedWorkers.includes(worker.id)
                         ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
                         : 'border-border/50 hover:border-primary/50 bg-card/50'
                     }`}
@@ -339,7 +356,7 @@ export default function NuevoValePage() {
                         <span className="font-mono">{worker.rut}</span> • {worker.area} • {worker.position}
                       </p>
                     </div>
-                    {selectedWorker === worker.id && (
+                    {selectedWorkers.includes(worker.id) && (
                       <CheckCircle className="w-6 h-6 text-primary" />
                     )}
                   </button>
@@ -482,8 +499,12 @@ export default function NuevoValePage() {
               <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Para el trabajador</p>
                 <div className="flex justify-between items-center">
-                  <p className="font-bold">{workers.find(w => w.id === selectedWorker)?.name}</p>
-                  <Badge variant="outline">{valeType === 'epp' ? 'EPP' : 'Material'}</Badge>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">
+                      {selectedWorkers.length} {selectedWorkers.length === 1 ? 'persona seleccionada' : 'personas seleccionadas'}
+                    </span>
+                  </div>
+                  <Badge variant="outline">{valeType === 'epp' ? 'EPP' : valeType === 'cargo_personal' ? 'Cargo Personal' : valeType === 'uso_diario' ? 'Uso Diario' : 'Material'}</Badge>
                 </div>
               </div>
 
