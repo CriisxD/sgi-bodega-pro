@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10 } from 'lucide-react';
+import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2 } from 'lucide-react';
 import type { Product, Category, ProductCategory } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -294,6 +294,61 @@ export default function ProductosPage() {
     });
   };
 
+  const cleanupCategories = async () => {
+    try {
+      setLoading(true);
+      toast.info('Limpiando y unificando categorías...');
+      
+      // 1. Fetch all categories
+      const { data: allCats } = await supabase.from('categories').select('*');
+      if (!allCats) return;
+
+      // Group by lowercase name
+      const grouped = allCats.reduce((acc: any, cat: any) => {
+        const name = cat.name.trim().toLowerCase();
+        if (!acc[name]) acc[name] = [];
+        acc[name].push(cat);
+        return acc;
+      }, {});
+
+      for (const [name, cats] of Object.entries(grouped)) {
+        const catArray = cats as any[];
+        // Fix EPP type
+        let targetType = catArray[0].type;
+        if (name === 'epp' || name === 'epp básico') targetType = 'epp';
+        
+        // If there are duplicates, merge them
+        if (catArray.length > 1) {
+          const keep = catArray[0];
+          const removeIds = catArray.slice(1).map(c => c.id);
+
+          // Update type if needed
+          if (keep.type !== targetType) {
+             await supabase.from('categories').update({ type: targetType }).eq('id', keep.id);
+          }
+
+          // Move all products to the kept category
+          await supabase.from('products').update({ category_id: keep.id }).in('category_id', removeIds);
+
+          // Delete duplicate categories
+          await supabase.from('categories').delete().in('id', removeIds);
+        } else {
+          // Just update type if it's wrong
+          if (catArray[0].type !== targetType) {
+            await supabase.from('categories').update({ type: targetType }).eq('id', catArray[0].id);
+          }
+        }
+      }
+
+      toast.success('Categorías corregidas y unificadas');
+      fetchCategories();
+      fetchProducts();
+    } catch (e: any) {
+      toast.error('Error al limpiar: ' + e.message);
+      setLoading(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -318,7 +373,10 @@ export default function ProductosPage() {
             Gestión del maestro de ítems ({products.length} registrados)
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={cleanupCategories} title="Unificar categorías duplicadas">
+            <Wand2 className="w-4 h-4" />
+          </Button>
           <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Importar CSV
