@@ -57,7 +57,7 @@ export default function StockPage() {
   // Adjust Stock Modal
   const [adjustProduct, setAdjustProduct] = useState<Product | null>(null);
   const [adjustType, setAdjustType] = useState<'entrada' | 'salida'>('entrada');
-  const [adjustQty, setAdjustQty] = useState<number>(1);
+  const [adjustQty, setAdjustQty] = useState<number | ''>(1);
   const [adjustNotes, setAdjustNotes] = useState('');
   const [adjusting, setAdjusting] = useState(false);
 
@@ -160,7 +160,7 @@ export default function StockPage() {
 
   // Adjust Stock Handler
   const handleAdjustStock = async () => {
-    if (!adjustProduct || !profile || adjustQty <= 0) return;
+    if (!adjustProduct || !profile || adjustQty === '' || adjustQty <= 0) return;
     setAdjusting(true);
     try {
       if (adjustType === 'entrada') {
@@ -572,7 +572,7 @@ export default function StockPage() {
                 min={1}
                 max={adjustType === 'salida' ? adjustProduct?.stock : undefined}
                 value={adjustQty}
-                onChange={(e) => setAdjustQty(parseInt(e.target.value) || 0)}
+                onChange={(e) => setAdjustQty(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                 className="text-center text-xl font-bold h-14"
               />
             </div>
@@ -582,8 +582,8 @@ export default function StockPage() {
               <p className="text-xs text-muted-foreground mb-1">Nuevo stock será:</p>
               <p className="text-2xl font-bold text-primary">
                 {adjustType === 'entrada'
-                  ? (adjustProduct?.stock || 0) + adjustQty
-                  : Math.max(0, (adjustProduct?.stock || 0) - adjustQty)
+                  ? (adjustProduct?.stock || 0) + (adjustQty || 0)
+                  : Math.max(0, (adjustProduct?.stock || 0) - (adjustQty || 0))
                 } {adjustProduct?.unit}
               </p>
             </div>
@@ -604,7 +604,7 @@ export default function StockPage() {
             <Button variant="outline" onClick={() => setAdjustProduct(null)}>Cancelar</Button>
             <Button
               onClick={handleAdjustStock}
-              disabled={adjusting || adjustQty <= 0}
+              disabled={adjusting || adjustQty === '' || adjustQty <= 0}
               className={adjustType === 'entrada' ? 'bg-success hover:bg-success/90' : 'bg-destructive hover:bg-destructive/90'}
             >
               {adjusting ? (
