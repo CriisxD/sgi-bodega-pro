@@ -438,7 +438,7 @@ export default function NuevaRecepcionPage() {
               </div>
               <div className="space-y-2">
                 <Label>Unidad</Label>
-                <Select value={newProdUnit} onValueChange={setNewProdUnit}>
+                <Select value={newProdUnit} onValueChange={(val) => setNewProdUnit(val || 'un')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="un">un</SelectItem>
