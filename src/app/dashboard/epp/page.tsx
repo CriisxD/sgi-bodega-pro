@@ -39,6 +39,7 @@ export default function EppPage() {
   const [viewMode, setViewMode] = usePersistentState<'cards' | 'table'>('epp-viewMode', 'cards');
   const [sortBy, setSortBy] = usePersistentState<'name_asc' | 'name_desc' | 'rut'>('epp-sortBy', 'name_asc');
   const [areaFilter, setAreaFilter] = usePersistentState<string>('epp-areaFilter', 'all');
+  const [positionFilter, setPositionFilter] = usePersistentState<string>('epp-positionFilter', 'all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,12 +83,18 @@ export default function EppPage() {
     return Array.from(areas).sort();
   }, [workers]);
 
+  const uniquePositions = useMemo(() => {
+    const positions = new Set(workers.map(w => w.position).filter(Boolean));
+    return Array.from(positions).sort();
+  }, [workers]);
+
   const filteredWorkers = useMemo(() => {
     let result = workers.filter(w => {
       const s = search.toLowerCase();
       const matchesSearch = w.name.toLowerCase().includes(s) || w.rut.toLowerCase().includes(s) || w.area.toLowerCase().includes(s);
       const matchesArea = areaFilter === 'all' || w.area === areaFilter;
-      return matchesSearch && matchesArea;
+      const matchesPosition = positionFilter === 'all' || w.position === positionFilter;
+      return matchesSearch && matchesArea && matchesPosition;
     });
 
     switch (sortBy) {
@@ -103,7 +110,7 @@ export default function EppPage() {
     }
     
     return result;
-  }, [workers, search, areaFilter, sortBy]);
+  }, [workers, search, areaFilter, positionFilter, sortBy]);
 
   const printRecord = () => {
     window.print();
@@ -160,6 +167,20 @@ export default function EppPage() {
                 <SelectItem value="all">Todas las áreas</SelectItem>
                 {uniqueAreas.map(area => (
                   <SelectItem key={area} value={area}>{area}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={positionFilter} onValueChange={(val) => setPositionFilter(val || 'all')}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todos los cargos">
+                  {positionFilter === 'all' ? 'Todos los cargos' : positionFilter}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los cargos</SelectItem>
+                {uniquePositions.map(pos => (
+                  <SelectItem key={pos} value={pos}>{pos}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
