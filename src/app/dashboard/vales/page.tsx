@@ -177,12 +177,18 @@ export default function MisValesPage() {
             </div>
 
             <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
-              <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue placeholder="Tipo de vale" />
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Tipo de vale">
+                  {typeFilter === 'all' && 'Todos los tipos'}
+                  {typeFilter === 'material' && 'Material / Herram.'}
+                  {typeFilter === 'epp' && 'EPP'}
+                  {typeFilter === 'cargo_personal' && 'Cargo Personal'}
+                  {typeFilter === 'uso_diario' && 'Uso Diario'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los tipos</SelectItem>
-                <SelectItem value="material">Material</SelectItem>
+                <SelectItem value="material">Material / Herram.</SelectItem>
                 <SelectItem value="epp">EPP</SelectItem>
                 <SelectItem value="cargo_personal">Cargo Personal</SelectItem>
                 <SelectItem value="uso_diario">Uso Diario</SelectItem>
@@ -191,7 +197,11 @@ export default function MisValesPage() {
 
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
               <SelectTrigger className="w-full sm:w-[150px]">
-                <SelectValue placeholder="Estado" />
+                <SelectValue placeholder="Estado">
+                  {statusFilter === 'all' && 'Todos los estados'}
+                  {statusFilter === 'pendiente' && 'Pendiente'}
+                  {statusFilter === 'procesado' && 'Procesado'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los estados</SelectItem>
@@ -201,12 +211,16 @@ export default function MisValesPage() {
             </Select>
 
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[190px]">
                 <div className="flex items-center gap-2">
                   {sortBy === 'date_desc' && <ArrowDownWideNarrow className="w-4 h-4" />}
                   {sortBy === 'date_asc' && <ArrowUpNarrowWide className="w-4 h-4" />}
                   {sortBy === 'status' && <List className="w-4 h-4" />}
-                  <SelectValue placeholder="Ordenar por" />
+                  <SelectValue placeholder="Ordenar por">
+                    {sortBy === 'date_desc' && 'Más recientes'}
+                    {sortBy === 'date_asc' && 'Más antiguos'}
+                    {sortBy === 'status' && 'Pendientes primero'}
+                  </SelectValue>
                 </div>
               </SelectTrigger>
               <SelectContent>
