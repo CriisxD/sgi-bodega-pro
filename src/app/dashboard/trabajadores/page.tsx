@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ export default function TrabajadoresPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -128,6 +130,51 @@ export default function TrabajadoresPage() {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredWorkers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredWorkers.map(w => w.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Eliminar ${selectedIds.size} trabajadores seleccionados?`)) return;
+    try {
+      const { error } = await supabase.from('workers').delete().in('id', Array.from(selectedIds));
+      if (error) {
+        await supabase.from('workers').update({ active: false }).in('id', Array.from(selectedIds));
+        toast.success(`${selectedIds.size} trabajadores desactivados (tienen historial)`);
+      } else {
+        toast.success(`${selectedIds.size} trabajadores eliminados`);
+      }
+      setSelectedIds(new Set());
+      fetchWorkers();
+    } catch (e: any) {
+      toast.error('Error: ' + e.message);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    try {
+      await supabase.from('workers').update({ active: false }).in('id', Array.from(selectedIds));
+      toast.success(`${selectedIds.size} trabajadores desactivados`);
+      setSelectedIds(new Set());
+      fetchWorkers();
+    } catch (e: any) {
+      toast.error('Error: ' + e.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -165,10 +212,32 @@ export default function TrabajadoresPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+              <span className="text-sm font-medium">{selectedIds.size} trabajador(es) seleccionado(s)</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+                  Deseleccionar
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleBulkDeactivate}>
+                  Desactivar
+                </Button>
+                <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Eliminar
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="rounded-md border border-border/50 overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>RUT</TableHead>
                   <TableHead>Área</TableHead>
@@ -180,13 +249,19 @@ export default function TrabajadoresPage() {
               <TableBody>
                 {filteredWorkers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No se encontraron trabajadores
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredWorkers.map(worker => (
                     <TableRow key={worker.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(worker.id)}
+                          onCheckedChange={() => toggleSelect(worker.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{worker.name}</TableCell>
                       <TableCell className="text-muted-foreground font-mono text-xs">{worker.rut}</TableCell>
                       <TableCell>{worker.area}</TableCell>

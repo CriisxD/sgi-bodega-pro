@@ -6,6 +6,7 @@ import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ export default function ProductosPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name_asc');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   // New/Edit modal states
@@ -130,6 +132,52 @@ export default function ProductosPage() {
       fetchProducts();
     } catch (error: any) {
       toast.error('Error al eliminar: ' + error.message);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredProducts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`¿Eliminar ${selectedIds.size} productos seleccionados?`)) return;
+    try {
+      const { error } = await supabase.from('products').delete().in('id', Array.from(selectedIds));
+      if (error) {
+        // Fallback: deactivate instead
+        await supabase.from('products').update({ active: false }).in('id', Array.from(selectedIds));
+        toast.success(`${selectedIds.size} productos desactivados (tienen historial)`);
+      } else {
+        toast.success(`${selectedIds.size} productos eliminados`);
+      }
+      setSelectedIds(new Set());
+      fetchProducts();
+    } catch (e: any) {
+      toast.error('Error: ' + e.message);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    try {
+      await supabase.from('products').update({ active: false }).in('id', Array.from(selectedIds));
+      toast.success(`${selectedIds.size} productos desactivados`);
+      setSelectedIds(new Set());
+      fetchProducts();
+    } catch (e: any) {
+      toast.error('Error: ' + e.message);
     }
   };
 
@@ -443,10 +491,32 @@ export default function ProductosPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+              <span className="text-sm font-medium">{selectedIds.size} producto(s) seleccionado(s)</span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+                  Deseleccionar
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleBulkDeactivate}>
+                  Desactivar
+                </Button>
+                <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
+                  <Trash2 className="w-4 h-4 mr-1" /> Eliminar
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="rounded-md border border-border/50 overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={filteredProducts.length > 0 && selectedIds.size === filteredProducts.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Producto</TableHead>
                   <TableHead className="hidden sm:table-cell">Categoría</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
@@ -458,13 +528,19 @@ export default function ProductosPage() {
               <TableBody>
                 {filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No se encontraron productos
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredProducts.map(product => (
                     <TableRow key={product.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(product.id)}
+                          onCheckedChange={() => toggleSelect(product.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Package className="w-4 h-4 text-muted-foreground" />
