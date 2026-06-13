@@ -54,7 +54,7 @@ export default function DespachoPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedVale, setSelectedVale] = useState<Vale | null>(null);
-  const [editableItems, setEditableItems] = useState<Record<string, number>>({});
+  const [editableItems, setEditableItems] = useState<Record<string, number | ''>>({});
   const [processing, setProcessing] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const sigCanvas = useRef<SignatureCanvas>(null);
@@ -130,7 +130,9 @@ export default function DespachoPage() {
 
     try {
       for (const item of selectedVale.items || []) {
-        const qtyToDeliver = editableItems[item.id] ?? item.quantity;
+        const qtyRaw = editableItems[item.id];
+        const qtyToDeliver = qtyRaw === '' ? 0 : (qtyRaw ?? item.quantity);
+
         await supabase
           .from('vale_items')
           .update({ quantity_delivered: qtyToDeliver })
@@ -361,11 +363,24 @@ export default function DespachoPage() {
                             className="w-16 h-8 text-center"
                             value={editableItems[item.id] !== undefined ? editableItems[item.id] : item.quantity}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || 0;
-                              setEditableItems(prev => ({
-                                ...prev, 
-                                [item.id]: Math.min(Math.max(val, 0), item.quantity)
-                              }));
+                              const valRaw = e.target.value;
+                              if (valRaw === '') {
+                                setEditableItems(prev => ({ ...prev, [item.id]: '' }));
+                              } else {
+                                const val = parseInt(valRaw);
+                                if (!isNaN(val)) {
+                                  setEditableItems(prev => ({
+                                    ...prev, 
+                                    [item.id]: Math.min(Math.max(val, 0), item.quantity)
+                                  }));
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              // Si al salir está vacío, poner en 0
+                              if (e.target.value === '') {
+                                setEditableItems(prev => ({ ...prev, [item.id]: 0 }));
+                              }
                             }}
                           />
                           <span className="text-sm font-bold text-muted-foreground">/ {item.quantity}</span>
