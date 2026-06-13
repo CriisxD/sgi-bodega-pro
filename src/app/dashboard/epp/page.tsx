@@ -290,7 +290,7 @@ export default function EppPage() {
       </Card>
 
       <Dialog open={!!selectedWorker} onOpenChange={() => setSelectedWorker(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex flex-row items-start justify-between print:hidden">
             <div>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
@@ -306,10 +306,10 @@ export default function EppPage() {
           </DialogHeader>
 
           {/* Printable Area / Document Preview */}
-          <div className="flex-1 overflow-y-auto bg-muted/30 p-2 sm:p-6 print:p-0 print:bg-white print:absolute print:inset-0">
+          <div className="flex-1 overflow-auto bg-muted/30 p-4 sm:p-6 print:p-0 print:bg-white print:absolute print:inset-0">
             
             {/* The Document "Paper" */}
-            <div className="print-area bg-white text-black max-w-4xl mx-auto rounded-none sm:rounded-md shadow-sm sm:shadow-md border border-border/50 print:border-none print:shadow-none p-6 sm:p-10 min-h-[800px]">
+            <div className="print-area bg-white text-black w-[800px] min-w-[800px] mx-auto rounded-none sm:rounded-md shadow-sm sm:shadow-md border border-border/50 print:border-none print:shadow-none p-6 sm:p-10 min-h-[1050px] print:w-full print:min-w-0 print:min-h-0 print:mx-0">
               
               {/* Header */}
               <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-start">
