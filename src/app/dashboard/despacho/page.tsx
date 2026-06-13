@@ -26,8 +26,11 @@ import {
   Signature,
   Trash2,
   Save,
+  Smartphone,
+  Wifi
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
+import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -57,6 +60,7 @@ export default function DespachoPage() {
   const [editableItems, setEditableItems] = useState<Record<string, number | ''>>({});
   const [processing, setProcessing] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [remoteSignatureStatus, setRemoteSignatureStatus] = useState<'waiting' | 'received'>('waiting');
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   const handleSelectVale = (vale: Vale) => {
@@ -67,7 +71,8 @@ export default function DespachoPage() {
       initialItems[item.id] = Math.min(item.quantity, stock > 0 ? stock : 0);
     });
     setEditableItems(initialItems);
-    setSignatureData(null);
+    setSignatureData(vale.signature || null);
+    setRemoteSignatureStatus('waiting');
   };
 
   const fetchVales = async () => {
@@ -107,6 +112,35 @@ export default function DespachoPage() {
       supabase.removeChannel(channel);
     };
   }, [supabase]);
+
+  // Listen for remote signatures for the currently selected vale
+  useEffect(() => {
+    if (!selectedVale) return;
+
+    const signatureChannel = supabase
+      .channel(`vale-${selectedVale.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'vales',
+          filter: `id=eq.${selectedVale.id}`
+        },
+        (payload) => {
+          if (payload.new.signature && payload.new.signature !== signatureData) {
+            setSignatureData(payload.new.signature);
+            setRemoteSignatureStatus('received');
+            toast.success('¡Firma remota recibida con éxito!');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(signatureChannel);
+    };
+  }, [selectedVale, supabase, signatureData]);
 
   const filteredVales = vales.filter((v) => {
     if (!search) return true;
@@ -377,7 +411,6 @@ export default function DespachoPage() {
                               }
                             }}
                             onBlur={(e) => {
-                              // Si al salir está vacío, poner en 0
                               if (e.target.value === '') {
                                 setEditableItems(prev => ({ ...prev, [item.id]: 0 }));
                               }
@@ -395,43 +428,68 @@ export default function DespachoPage() {
               <div className="mt-6 border-t pt-6">
                 <div className="flex justify-between items-center mb-2">
                   <Label className="font-bold flex items-center gap-2">
-                    <Signature className="w-4 h-4 text-primary" /> 
-                    Firma del Trabajador {selectedVale?.type === 'epp' && <span className="text-destructive">*Obligatoria</span>}
+                    <Smartphone className="w-4 h-4 text-primary" /> 
+                    Firma Remota {selectedVale?.type === 'epp' && <span className="text-destructive">*Obligatoria</span>}
                   </Label>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => {
-                      sigCanvas.current?.clear();
-                      setSignatureData(null);
-                    }}
-                    className="h-8 text-xs text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" /> Limpiar
-                  </Button>
+                  {signatureData && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSignatureData(null);
+                        setRemoteSignatureStatus('waiting');
+                      }}
+                      className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" /> Eliminar Firma
+                    </Button>
+                  )}
                 </div>
-                <div className="border-2 border-dashed border-border rounded-xl bg-card overflow-hidden">
-                  <SignatureCanvas 
-                    ref={sigCanvas}
-                    canvasProps={{ className: 'w-full h-40 cursor-crosshair touch-none' }}
-                    onEnd={() => {
-                      if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-                        setSignatureData(sigCanvas.current.toDataURL('image/png'));
-                      }
-                    }}
-                  />
-                </div>
+
+                {!signatureData ? (
+                  <div className="flex flex-col sm:flex-row gap-6 items-center bg-muted/20 p-4 rounded-xl border border-border/50">
+                    <div className="bg-white p-3 rounded-xl shadow-sm shrink-0">
+                      <QRCodeSVG 
+                        value={typeof window !== 'undefined' ? `${window.location.origin}/firma/${selectedVale.id}` : ''}
+                        size={140}
+                        bgColor="#ffffff"
+                        fgColor="#000000"
+                        level="H"
+                        includeMargin={false}
+                      />
+                    </div>
+                    <div className="text-center sm:text-left space-y-2">
+                      <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
+                        <Wifi className="w-3 h-3 animate-pulse" /> Esperando firma...
+                      </div>
+                      <h4 className="font-bold text-base">Que el trabajador escanee este código</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Pídele a <span className="font-bold text-foreground">{selectedVale.worker?.name}</span> que abra la cámara de su celular, apunte al código QR y firme en su pantalla. Aparecerá aquí mágicamente.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-success/50 rounded-xl bg-success/5 overflow-hidden flex flex-col items-center justify-center p-6 relative">
+                    <div className="absolute top-2 right-2 bg-success text-success-foreground text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" /> Recibida
+                    </div>
+                    <img src={signatureData} alt="Firma recibida" className="h-32 object-contain" />
+                    <p className="text-xs text-success font-semibold mt-2">Firma digital lista para guardar</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="px-6 py-4 border-t bg-muted/20">
             <Button variant="ghost" onClick={() => setSelectedVale(null)}>
               Cancelar
             </Button>
             <Button 
               onClick={handleProcess} 
               disabled={processing || (selectedVale?.type === 'epp' && !signatureData)}
+              className="font-bold shadow-lg shadow-primary/20"
+              size="lg"
             >
               {processing ? (
                 <>

@@ -77,6 +77,7 @@ export interface Vale {
   worker?: Worker;
   creator?: Profile;
   processor?: Profile;
+  signature?: string;
   items?: ValeItem[];
 }
 

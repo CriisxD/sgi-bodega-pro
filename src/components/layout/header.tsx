@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { usePathname } from 'next/navigation';
 import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { NotificationsMenu } from './notifications-menu';
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -52,12 +52,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground">
-            3
-          </Badge>
-        </Button>
+        <NotificationsMenu />
       </div>
     </header>
   );
