@@ -20,15 +20,20 @@ export default function FirmaMobilePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await getValeForSignature(id);
-      if (!res.success || !res.data) {
-        setError('No se pudo cargar el vale. Verifica el código QR.');
-      } else if (res.data.status === 'procesado') {
-        setError('Este vale ya fue entregado y firmado.');
-      } else {
-        setValeData(res.data);
+      try {
+        const res = await getValeForSignature(id);
+        if (!res.success || !res.data) {
+          setError('No se pudo cargar el vale. Verifica el código QR. Detalle: ' + (res.error || ''));
+        } else if (res.data.status === 'procesado') {
+          setError('Este vale ya fue entregado y firmado.');
+        } else {
+          setValeData(res.data);
+        }
+      } catch (err: any) {
+        setError('Error de conexión al servidor: ' + err.message);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchData();
   }, [id]);
