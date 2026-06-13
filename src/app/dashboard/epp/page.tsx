@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ import type { Worker, EppRecord } from '@/lib/types';
 
 export default function EppPage() {
   const supabase = createClient();
+  const { profile } = useAuth();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [records, setRecords] = useState<EppRecord[]>([]);
   const [search, setSearch] = useState('');
@@ -281,57 +283,82 @@ export default function EppPage() {
             </Button>
           </DialogHeader>
 
-          {/* Printable Area */}
-          <div className="flex-1 overflow-y-auto pr-2 print-area print:p-8 print:text-black print:bg-white print:absolute print:inset-0">
-            {/* Print Header */}
-            <div className="hidden print:block mb-8 border-b-2 pb-4">
-              <h2 className="text-2xl font-bold">SISTEMA GESTIÓN INTEGRAL</h2>
-              <h3 className="text-xl font-semibold mt-2">Registro de Entrega - Elementos de Protección Personal</h3>
-              <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                <p><strong>RUT:</strong> {selectedWorker?.rut}</p>
-                <p><strong>Nombre:</strong> {selectedWorker?.name}</p>
-                <p><strong>Cargo:</strong> {selectedWorker?.position}</p>
-                <p><strong>Área:</strong> {selectedWorker?.area}</p>
-              </div>
-              <p className="text-xs mt-4 italic">
-                Declaro recibir los Elementos de Protección Personal detallados a continuación, instruyéndome sobre su uso, mantención y reposición,
-                comprometiéndome a usarlos en forma permanente durante la jornada laboral en las áreas donde sean requeridos.
-              </p>
-            </div>
-
-            {records.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground print:hidden">
-                <p>El trabajador aún no tiene EPP registrado en el sistema histórico.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {records.map((record: any) => (
-                  <div key={record.id} className="p-3 border rounded-lg bg-muted/20 print:bg-transparent print:border-black print:rounded-none flex justify-between">
-                    <div>
-                      <h4 className="font-semibold text-sm print:text-base">
-                        {record.product?.name} <span className="font-normal text-muted-foreground print:text-black">x{record.quantity} {record.product?.unit}</span>
-                      </h4>
-                      <p className="text-xs text-muted-foreground print:text-black">
-                        Fecha Entrega: {format(new Date(record.delivered_at), "d MMMM yyyy, HH:mm", { locale: es })}
-                      </p>
-                      <div className="text-xs text-muted-foreground mt-1 print:hidden flex gap-3">
-                        <span>Aut: {record.authorizer?.full_name || '-'}</span>
-                        <span>Bodega: {record.processor?.full_name || '-'}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Signature block placeholder for print mode */}
-                    <div className="hidden print:flex flex-col justify-end items-center mr-8">
-                      <div className="w-40 border-b border-black mb-1"></div>
-                      <span className="text-xs">Firma Receptor</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Printable Area / Document Preview */}
+          <div className="flex-1 overflow-y-auto bg-muted/30 p-2 sm:p-6 print:p-0 print:bg-white print:absolute print:inset-0">
             
-            <div className="hidden print:block mt-12 text-sm">
-              <p>Fecha impresión: {format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+            {/* The Document "Paper" */}
+            <div className="print-area bg-white text-black max-w-4xl mx-auto rounded-none sm:rounded-md shadow-sm sm:shadow-md border border-border/50 print:border-none print:shadow-none p-6 sm:p-10 min-h-[800px]">
+              
+              {/* Header */}
+              <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-tight">Sistema Gestión Integral</h2>
+                  <h3 className="text-lg font-semibold mt-1 uppercase text-gray-700">Registro de Entrega - EPP</h3>
+                </div>
+                <div className="text-right text-sm">
+                  <p className="font-bold">HORMIBAL</p>
+                  <p className="text-gray-500">Bodega Central</p>
+                </div>
+              </div>
+
+              {/* Worker Info */}
+              <div className="grid grid-cols-2 gap-y-3 gap-x-8 text-sm mb-6 bg-gray-50 print:bg-transparent p-4 rounded border border-gray-200 print:border-none print:p-0">
+                <p><span className="font-bold text-gray-600">RUT:</span> <span className="font-mono text-base">{selectedWorker?.rut}</span></p>
+                <p><span className="font-bold text-gray-600">Nombre:</span> <span className="uppercase">{selectedWorker?.name}</span></p>
+                <p><span className="font-bold text-gray-600">Cargo:</span> {selectedWorker?.position}</p>
+                <p><span className="font-bold text-gray-600">Área:</span> {selectedWorker?.area}</p>
+              </div>
+
+              {/* Legal Text */}
+              <div className="mb-6 p-4 border border-gray-300 text-xs text-justify bg-gray-50 print:bg-transparent">
+                <p className="font-bold mb-1">DECLARACIÓN DEL TRABAJADOR:</p>
+                <p>
+                  Declaro recibir conforme los Elementos de Protección Personal (EPP) detallados a continuación, adecuados a los riesgos de mi labor. 
+                  He sido instruido sobre su correcto uso, mantención y reposición. Me comprometo a utilizarlos de forma obligatoria y permanente 
+                  durante la jornada laboral en las áreas donde sean requeridos, de acuerdo a la Ley 16.744 y el Reglamento Interno de la empresa.
+                </p>
+              </div>
+
+              {/* Records Table */}
+              {records.length === 0 ? (
+                <div className="text-center py-10 text-gray-500 italic">
+                  El trabajador aún no tiene entregas de EPP registradas en el sistema.
+                </div>
+              ) : (
+                <table className="w-full text-sm border-collapse mb-10">
+                  <thead>
+                    <tr className="border-b-2 border-black text-left">
+                      <th className="py-2 px-2 font-bold">Fecha</th>
+                      <th className="py-2 px-2 font-bold">Elemento de Protección</th>
+                      <th className="py-2 px-2 font-bold text-center">Cant.</th>
+                      <th className="py-2 px-2 font-bold text-center">Firma Receptor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((record: any) => (
+                      <tr key={record.id} className="border-b border-gray-300">
+                        <td className="py-4 px-2 whitespace-nowrap">
+                          {format(new Date(record.delivered_at), "dd/MM/yyyy")}
+                        </td>
+                        <td className="py-4 px-2">
+                          <p className="font-semibold">{record.product?.name}</p>
+                          {record.product?.brand && <p className="text-xs text-gray-500">Marca: {record.product.brand}</p>}
+                        </td>
+                        <td className="py-4 px-2 text-center">{record.quantity} {record.product?.unit}</td>
+                        <td className="py-4 px-2 text-center align-bottom">
+                          <div className="w-32 mx-auto border-b border-gray-400 mt-6"></div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              
+              {/* Footer */}
+              <div className="mt-12 text-xs text-gray-400 flex justify-between print:mt-auto">
+                <p>Impreso por: {profile?.full_name}</p>
+                <p>Fecha impresión: {format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -340,9 +367,12 @@ export default function EppPage() {
       {/* CSS For Printing */}
       <style dangerouslySetInnerHTML={{__html:`
         @media print {
+          @page { margin: 1cm; }
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
+          .print-area table { page-break-inside: auto; }
+          .print-area tr { page-break-inside: avoid; page-break-after: auto; }
         }
       `}} />
     </div>
