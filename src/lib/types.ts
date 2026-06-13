@@ -49,6 +49,7 @@ export interface Category {
 export interface Product {
   id: string;
   name: string;
+  brand: string | null;
   category_id: string;
   stock: number;
   min_stock: number;
@@ -137,7 +138,14 @@ export interface StockMovement {
 export interface Reception {
   id: string;
   supplier: string;
+  supplier_rut: string | null;
+  supplier_name: string | null;
   invoice: string | null;
+  invoice_date: string | null;
+  document_type: string | null;
+  net_amount: number;
+  iva_amount: number;
+  total_amount: number;
   received_by: string;
   notes: string | null;
   created_at: string;

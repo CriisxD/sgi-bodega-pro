@@ -46,10 +46,15 @@ export default function NuevaRecepcionPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   
-  // Form State
-  const [supplier, setSupplier] = useState('');
-  const [invoice, setInvoice] = useState('');
+  // Invoice / Document Form State
+  const [documentType, setDocumentType] = useState('factura');
+  const [supplierRut, setSupplierRut] = useState('');
+  const [supplierName, setSupplierName] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  
+  // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
   
   // Product Search State
@@ -61,6 +66,7 @@ export default function NuevaRecepcionPage() {
   const [newProdCat, setNewProdCat] = useState('');
   const [newProdMinStock, setNewProdMinStock] = useState(0);
   const [newProdUnit, setNewProdUnit] = useState('un');
+  const [newProdBrand, setNewProdBrand] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -113,6 +119,7 @@ export default function NuevaRecepcionPage() {
     try {
       const { data, error } = await supabase.from('products').insert({
         name: newProdName.trim(),
+        brand: newProdBrand.trim() || null,
         category_id: newProdCat,
         stock: 0,
         min_stock: newProdMinStock,
@@ -126,6 +133,7 @@ export default function NuevaRecepcionPage() {
       handleAddToCart(data);
       setIsNewProductOpen(false);
       setNewProdName('');
+      setNewProdBrand('');
       setNewProdCat('');
       
     } catch (e: any) {
@@ -133,18 +141,30 @@ export default function NuevaRecepcionPage() {
     }
   };
 
+  // Calculated totals
+  const netAmount = cart.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+  const ivaAmount = Math.round(netAmount * 0.19);
+  const totalAmount = netAmount + ivaAmount;
+
   const handleSaveReception = async () => {
-    if (!supplier.trim()) return toast.error('Debes ingresar un proveedor');
+    if (!supplierName.trim()) return toast.error('Debes ingresar el nombre/razón social del proveedor');
     if (cart.length === 0) return toast.error('Añade al menos un producto a la recepción');
     if (cart.some(item => item.quantity <= 0)) return toast.error('Las cantidades deben ser mayores a cero');
     if (!profile) return toast.error('Error de sesión');
 
     setSaving(true);
     try {
-      // 1. Create Reception
+      // 1. Create Reception with full invoice data
       const { data: reception, error: recError } = await supabase.from('receptions').insert({
-        supplier: supplier.trim(),
-        invoice: invoice.trim() || null,
+        supplier: supplierName.trim(),
+        supplier_rut: supplierRut.trim() || null,
+        supplier_name: supplierName.trim(),
+        invoice: invoiceNumber.trim() || null,
+        invoice_date: invoiceDate || null,
+        document_type: documentType,
+        net_amount: netAmount,
+        iva_amount: ivaAmount,
+        total_amount: totalAmount,
         notes: notes.trim() || null,
         received_by: profile.id
       }).select().single();
@@ -191,6 +211,21 @@ export default function NuevaRecepcionPage() {
     }
   };
 
+  // Format RUT as user types
+  const handleRutChange = (value: string) => {
+    // Remove everything except numbers and K/k
+    let clean = value.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (clean.length > 1) {
+      const body = clean.slice(0, -1);
+      const dv = clean.slice(-1);
+      // Add dots and dash
+      const formatted = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+      setSupplierRut(formatted);
+    } else {
+      setSupplierRut(clean);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -198,8 +233,6 @@ export default function NuevaRecepcionPage() {
       </div>
     );
   }
-
-  const totalCost = cart.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-20">
@@ -214,29 +247,81 @@ export default function NuevaRecepcionPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Form Info */}
+        {/* Left Column: Invoice Info */}
         <div className="md:col-span-1 space-y-6">
           <Card className="card-glow border-border/50">
             <CardHeader>
               <CardTitle className="text-lg">Datos del Documento</CardTitle>
+              <CardDescription>Información de la factura o guía</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Document Type */}
               <div className="space-y-2">
-                <Label>Proveedor <span className="text-destructive">*</span></Label>
-                <Input 
-                  placeholder="Ej. Sodimac, Ferretería local..." 
-                  value={supplier}
-                  onChange={e => setSupplier(e.target.value)}
-                />
+                <Label>Tipo de Documento</Label>
+                <Select value={documentType} onValueChange={(val) => setDocumentType(val || 'factura')}>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {documentType === 'factura' ? 'Factura' : 
+                       documentType === 'guia_despacho' ? 'Guía de Despacho' : 
+                       documentType === 'boleta' ? 'Boleta' : 
+                       documentType === 'nota_credito' ? 'Nota de Crédito' : 'Otro'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="factura">Factura</SelectItem>
+                    <SelectItem value="guia_despacho">Guía de Despacho</SelectItem>
+                    <SelectItem value="boleta">Boleta</SelectItem>
+                    <SelectItem value="nota_credito">Nota de Crédito</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Invoice Number */}
               <div className="space-y-2">
-                <Label>Nº Factura / Guía</Label>
+                <Label>Nº Documento</Label>
                 <Input 
                   placeholder="Ej. F-12345" 
-                  value={invoice}
-                  onChange={e => setInvoice(e.target.value)}
+                  value={invoiceNumber}
+                  onChange={e => setInvoiceNumber(e.target.value)}
                 />
               </div>
+
+              {/* Invoice Date */}
+              <div className="space-y-2">
+                <Label>Fecha del Documento</Label>
+                <Input 
+                  type="date"
+                  value={invoiceDate}
+                  onChange={e => setInvoiceDate(e.target.value)}
+                />
+              </div>
+
+              <div className="h-px bg-border/50 my-1" />
+
+              {/* Supplier RUT */}
+              <div className="space-y-2">
+                <Label>RUT Proveedor</Label>
+                <Input 
+                  placeholder="Ej. 76.123.456-7" 
+                  value={supplierRut}
+                  onChange={e => handleRutChange(e.target.value)}
+                />
+              </div>
+
+              {/* Supplier Name */}
+              <div className="space-y-2">
+                <Label>Razón Social / Nombre <span className="text-destructive">*</span></Label>
+                <Input 
+                  placeholder="Ej. Sodimac S.A." 
+                  value={supplierName}
+                  onChange={e => setSupplierName(e.target.value)}
+                />
+              </div>
+
+              <div className="h-px bg-border/50 my-1" />
+
+              {/* Notes */}
               <div className="space-y-2">
                 <Label>Notas (Opcional)</Label>
                 <Textarea 
@@ -246,6 +331,25 @@ export default function NuevaRecepcionPage() {
                   onChange={e => setNotes(e.target.value)}
                 />
               </div>
+
+              {/* Totals Summary */}
+              {cart.length > 0 && (
+                <div className="bg-muted/30 rounded-xl border border-border/50 p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Neto</span>
+                    <span className="font-medium">${netAmount.toLocaleString('es-CL')}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">IVA (19%)</span>
+                    <span className="font-medium">${ivaAmount.toLocaleString('es-CL')}</span>
+                  </div>
+                  <div className="h-px bg-border/50" />
+                  <div className="flex justify-between font-bold text-primary">
+                    <span>Total</span>
+                    <span>${totalAmount.toLocaleString('es-CL')}</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -303,7 +407,7 @@ export default function NuevaRecepcionPage() {
           <Card className="border-border/50 min-h-[400px] flex flex-col">
             <CardHeader className="border-b border-border/50 pb-4">
               <CardTitle className="text-lg flex justify-between items-center">
-                <span>Lista de Ingreso</span>
+                <span>Detalle de Productos</span>
                 <span className="text-sm font-normal text-muted-foreground">
                   {cart.length} items
                 </span>
@@ -315,7 +419,7 @@ export default function NuevaRecepcionPage() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead>Producto</TableHead>
                     <TableHead className="w-24 text-center">Cant.</TableHead>
-                    <TableHead className="w-32 text-center">Prec. Unitario</TableHead>
+                    <TableHead className="w-32 text-center">Prec. Unitario (Neto)</TableHead>
                     <TableHead className="w-24 text-right">Subtotal</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
@@ -380,10 +484,19 @@ export default function NuevaRecepcionPage() {
               </Table>
             </CardContent>
             {cart.length > 0 && (
-              <div className="p-4 bg-muted/30 border-t border-border flex justify-between items-center rounded-b-lg">
-                <div className="text-sm text-muted-foreground">Costo Total Recepción</div>
-                <div className="text-xl font-bold text-primary">
-                  ${totalCost.toLocaleString('es-CL')}
+              <div className="p-4 bg-muted/30 border-t border-border flex flex-col gap-1 rounded-b-lg">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Neto</span>
+                  <span>${netAmount.toLocaleString('es-CL')}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>IVA (19%)</span>
+                  <span>${ivaAmount.toLocaleString('es-CL')}</span>
+                </div>
+                <div className="h-px bg-border/50 my-1" />
+                <div className="flex justify-between font-bold text-primary text-lg">
+                  <span>Total</span>
+                  <span>${totalAmount.toLocaleString('es-CL')}</span>
                 </div>
               </div>
             )}
@@ -393,7 +506,7 @@ export default function NuevaRecepcionPage() {
             <Button variant="outline" onClick={() => router.back()}>Cancelar</Button>
             <Button size="lg" className="w-full sm:w-auto" onClick={handleSaveReception} disabled={saving || cart.length === 0}>
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar Recepción de Stock
+              Guardar Recepción
             </Button>
           </div>
         </div>
@@ -428,6 +541,14 @@ export default function NuevaRecepcionPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Marca</Label>
+              <Input 
+                value={newProdBrand} 
+                onChange={e => setNewProdBrand(e.target.value)} 
+                placeholder="Ej. 3M, Bosch, Stanley..."
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

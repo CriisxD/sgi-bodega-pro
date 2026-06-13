@@ -5,14 +5,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Plus, Search, PackagePlus, Trash2, Save } from 'lucide-react';
-import { toast } from 'sonner';
+import { Loader2, Search, PackagePlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { Product, Reception } from '@/lib/types';
+import type { Reception } from '@/lib/types';
 
 export default function RecepcionesPage() {
   const router = useRouter();
@@ -26,7 +26,6 @@ export default function RecepcionesPage() {
   }, [supabase]);
 
   const fetchData = async () => {
-    // Fetch past receptions
     const { data: recs } = await supabase
       .from('receptions')
       .select(`
@@ -44,8 +43,20 @@ export default function RecepcionesPage() {
   const filteredReceptions = receptions.filter(r => {
     if (!search) return true;
     const s = search.toLowerCase();
-    return r.supplier.toLowerCase().includes(s) || (r.invoice || '').toLowerCase().includes(s);
+    return r.supplier.toLowerCase().includes(s) 
+      || (r.invoice || '').toLowerCase().includes(s)
+      || (r.supplier_rut || '').toLowerCase().includes(s);
   });
+
+  const docTypeLabel = (type: string | null) => {
+    switch (type) {
+      case 'factura': return 'Factura';
+      case 'guia_despacho': return 'Guía';
+      case 'boleta': return 'Boleta';
+      case 'nota_credito': return 'N. Crédito';
+      default: return type || 'Doc.';
+    }
+  };
 
   if (loading) {
     return (
@@ -76,7 +87,7 @@ export default function RecepcionesPage() {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar proveedor o factura..."
+              placeholder="Buscar proveedor, factura o RUT..."
               className="pl-9 h-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -92,14 +103,15 @@ export default function RecepcionesPage() {
                   <TableHead>Proveedor</TableHead>
                   <TableHead>Documento</TableHead>
                   <TableHead>Recibido por</TableHead>
-                  <TableHead className="text-right">Costo Total</TableHead>
+                  <TableHead className="text-right">Neto</TableHead>
+                  <TableHead className="text-right">Total c/IVA</TableHead>
                   <TableHead className="text-right">Ítems</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredReceptions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No se encontraron registros de recepción.
                     </TableCell>
                   </TableRow>
@@ -107,25 +119,48 @@ export default function RecepcionesPage() {
                   filteredReceptions.map((reception) => (
                     <TableRow key={reception.id}>
                       <TableCell className="text-sm">
-                        {format(new Date(reception.created_at), "d MMM yyyy, HH:mm", { locale: es })}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {reception.supplier}
+                        <div>{format(new Date(reception.created_at), "d MMM yyyy", { locale: es })}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(reception.created_at), "HH:mm", { locale: es })}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        {reception.invoice || <span className="text-muted-foreground italic text-xs">Sin doc.</span>}
+                        <div className="font-medium">{reception.supplier_name || reception.supplier}</div>
+                        {reception.supplier_rut && (
+                          <div className="text-xs text-muted-foreground font-mono">{reception.supplier_rut}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px] uppercase">
+                            {docTypeLabel(reception.document_type)}
+                          </Badge>
+                          {reception.invoice ? (
+                            <span className="font-mono text-sm">{reception.invoice}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">Sin doc.</span>
+                          )}
+                        </div>
+                        {reception.invoice_date && (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {format(new Date(reception.invoice_date + 'T12:00:00'), "d MMM yyyy", { locale: es })}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {reception.receiver?.full_name}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        ${reception.items?.reduce((acc: number, item: any) => acc + (item.quantity * (item.unit_price || 0)), 0).toLocaleString('es-CL')}
+                      <TableCell className="text-right font-medium text-sm">
+                        ${(reception.net_amount || 0).toLocaleString('es-CL')}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-primary">
+                        ${(reception.total_amount || 0).toLocaleString('es-CL')}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-col items-end">
-                          <span className="font-bold">{reception.items?.length || 0} productos</span>
+                          <span className="font-bold">{reception.items?.length || 0} prod.</span>
                           <span className="text-[10px] text-muted-foreground">
-                            total: {reception.items?.reduce((acc: number, item: any) => acc + item.quantity, 0)} unid.
+                            {reception.items?.reduce((acc: number, item: any) => acc + item.quantity, 0)} unid.
                           </span>
                         </div>
                       </TableCell>

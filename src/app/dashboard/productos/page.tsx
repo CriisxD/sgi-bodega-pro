@@ -49,6 +49,7 @@ export default function ProductosPage() {
   const [formStock, setFormStock] = useState(0);
   const [formMinStock, setFormMinStock] = useState(0);
   const [formUnit, setFormUnit] = useState('un');
+  const [formBrand, setFormBrand] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Import modal states
@@ -240,6 +241,7 @@ export default function ProductosPage() {
     setFormStock(0);
     setFormMinStock(0);
     setFormUnit('un');
+    setFormBrand('');
     setIsModalOpen(true);
   };
 
@@ -250,6 +252,7 @@ export default function ProductosPage() {
     setFormStock(product.stock);
     setFormMinStock(product.min_stock);
     setFormUnit(product.unit);
+    setFormBrand(product.brand || '');
     setIsModalOpen(true);
   };
 
@@ -265,6 +268,7 @@ export default function ProductosPage() {
           .from('products')
           .update({
             name: formName.trim(),
+            brand: formBrand.trim() || null,
             category_id: formCategoryId,
             min_stock: formMinStock,
             unit: formUnit,
@@ -278,6 +282,7 @@ export default function ProductosPage() {
           .from('products')
           .insert({
             name: formName.trim(),
+            brand: formBrand.trim() || null,
             category_id: formCategoryId,
             stock: formStock,
             min_stock: formMinStock,
@@ -594,7 +599,12 @@ export default function ProductosPage() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Package className="w-4 h-4 text-muted-foreground" />
-                          {product.name}
+                          <div>
+                            {product.name}
+                            {product.brand && (
+                              <div className="text-xs text-muted-foreground font-normal">{product.brand}</div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
@@ -693,6 +703,15 @@ export default function ProductosPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Marca</Label>
+              <Input
+                placeholder="Ej. 3M, Bosch, Stanley..."
+                value={formBrand}
+                onChange={(e) => setFormBrand(e.target.value)}
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
