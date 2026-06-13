@@ -240,7 +240,7 @@ export default function NuevoValePage() {
   const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="max-w-xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
       {/* Progress Bar */}
       <div className="mb-6">
         <div className="flex justify-between text-xs font-medium text-muted-foreground mb-2 px-1">
@@ -255,7 +255,7 @@ export default function NuevoValePage() {
         </div>
       </div>
 
-      <Card ref={cardRef} className="card-glow border-border/50 shadow-xl">
+      <Card ref={cardRef} className="card-glow border-border/50 shadow-xl flex-1 flex flex-col min-h-0">
         
         {/* PASO 1: Tipo de Vale */}
         {step === 1 && (
@@ -271,7 +271,7 @@ export default function NuevoValePage() {
                 Siguiente <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </div>
-            <CardContent className="grid gap-4 py-4 border-t border-border/10 mt-2">
+            <CardContent className="grid gap-4 py-4 border-t border-border/10 mt-2 flex-1 overflow-y-auto">
               {valeTypeOptions.filter(t => t.roles.includes(profile?.role || '')).map((type) => {
                 const Icon = type.icon;
                 return (
@@ -399,7 +399,7 @@ export default function NuevoValePage() {
               </div>
 
               {/* Lista de Productos */}
-              <div className="grid gap-3 max-h-[50vh] overflow-y-auto pr-1 pb-2">
+              <div className="grid gap-3 flex-1 overflow-y-auto pr-1 pb-2">
                 {filteredProducts.map((product) => {
                   const inCart = cart.find((c) => c.product.id === product.id);
                   return (
@@ -493,7 +493,7 @@ export default function NuevoValePage() {
                 )}
               </Button>
             </div>
-            <CardContent className="space-y-6 py-4 border-t border-border/10 mt-2">
+            <CardContent className="space-y-6 pt-4 flex-1 overflow-y-auto border-t border-border/10 mt-2">
               
               {/* Info Worker */}
               <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
