@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
-import type { Product, Category } from '@/lib/types';
+import type { Product } from '@/lib/types';
 
 type SortOption = 'critical' | 'stock_asc' | 'alpha' | 'category';
 type ViewMode = 'cards' | 'table';
@@ -40,7 +40,7 @@ export default function StockPage() {
   const supabase = createClient();
   const { profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = usePersistentState<string>('stock-selectedCategory', 'all');
   const [loading, setLoading] = useState(true);
@@ -64,8 +64,6 @@ export default function StockPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: cats } = await supabase.from('categories').select('*').order('name');
-      setCategories(cats || []);
 
       const { data: prods } = await supabase
         .from('products')
@@ -126,7 +124,7 @@ export default function StockPage() {
   const filteredProducts = useMemo(() => {
     let result = products.filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
+      const matchCategory = selectedCategory === 'all' || p.category?.type === selectedCategory;
       const matchCritical = onlyCritical ? p.stock <= p.min_stock : true;
       return matchSearch && matchCategory && matchCritical;
     });
@@ -295,23 +293,22 @@ export default function StockPage() {
           </Button>
 
           <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-            <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('all')}
-              className="whitespace-nowrap"
-            >
-              Todos
-            </Button>
-            {categories.map((cat) => (
+            {[
+              { id: 'all', label: 'Todos' },
+              { id: 'material', label: 'Materiales' },
+              { id: 'epp', label: 'EPP' },
+              { id: 'herramienta', label: 'Herramientas' },
+              { id: 'consumible', label: 'Consumibles' },
+              { id: 'aseo', label: 'Aseo' },
+            ].map((tab) => (
               <Button
-                key={cat.id}
-                variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                key={tab.id}
+                variant={selectedCategory === tab.id ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => setSelectedCategory(tab.id)}
                 className="whitespace-nowrap"
               >
-                {cat.name}
+                {tab.label}
               </Button>
             ))}
           </div>

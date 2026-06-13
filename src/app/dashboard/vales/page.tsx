@@ -69,7 +69,7 @@ export default function MisValesPage() {
         `)
         .order('created_at', { ascending: false });
 
-      if (profile.role !== 'admin') {
+      if (profile.role !== 'admin' && profile.role !== 'bodeguero') {
         query = query.eq('created_by', profile.id);
       }
 
@@ -87,7 +87,7 @@ export default function MisValesPage() {
 
     fetchVales();
 
-    const channelFilter = profile?.role === 'admin' 
+    const channelFilter = (profile?.role === 'admin' || profile?.role === 'bodeguero')
       ? undefined 
       : `created_by=eq.${profile?.id}`;
 
@@ -157,10 +157,10 @@ export default function MisValesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold">
-              {profile?.role === 'admin' ? 'Todos los Vales' : 'Mis Vales Emitidos'}
+              {profile?.role === 'admin' || profile?.role === 'bodeguero' ? 'Todos los Vales' : 'Mis Vales Emitidos'}
             </h2>
             <p className="text-muted-foreground text-sm">
-              {profile?.role === 'admin' ? 'Auditoría y registro de todos los vales emitidos.' : 'Historial de vales creados por ti.'}
+              {profile?.role === 'admin' || profile?.role === 'bodeguero' ? 'Auditoría y registro de todos los vales.' : 'Historial de vales creados por ti.'}
             </p>
           </div>
         </div>

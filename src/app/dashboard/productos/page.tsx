@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2, Trash2 } from 'lucide-react';
+import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2, Trash2, Tags } from 'lucide-react';
 import type { Product, Category, ProductCategory } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -54,7 +54,13 @@ export default function ProductosPage() {
   // Import modal states
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importCategoryId, setImportCategoryId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Category modal states
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryType, setNewCategoryType] = useState('material');
 
   const fetchProducts = async () => {
     const { data } = await supabase
@@ -69,6 +75,19 @@ export default function ProductosPage() {
   const fetchCategories = async () => {
     const { data } = await supabase.from('categories').select('*').order('name');
     setCategories(data as Category[] || []);
+  };
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      const { error } = await supabase.from('categories').insert({ name: newCategoryName.trim(), type: newCategoryType });
+      if (error) throw error;
+      toast.success('Categoría agregada');
+      setNewCategoryName('');
+      fetchCategories();
+    } catch (err: any) {
+      toast.error('Error al agregar: ' + err.message);
+    }
   };
 
   useEffect(() => {
@@ -261,6 +280,10 @@ export default function ProductosPage() {
   };
 
   const processImport = async (file: File) => {
+    if (!importCategoryId) {
+      toast.error('Debes seleccionar una categoría antes de importar');
+      return;
+    }
     setImporting(true);
     Papa.parse(file, {
       header: true,
@@ -274,36 +297,15 @@ export default function ProductosPage() {
           let updateCount = 0;
           let errorCount = 0;
 
-          // Process sequentially to handle category creation properly
           for (const row of rows) {
             const name = row.Nombre?.trim();
-            const catName = row.Categoria?.trim();
-            const rawType = row.Tipo_Principal?.trim()?.toLowerCase();
             
-            if (!name || !catName) {
+            if (!name) {
               errorCount++;
               continue;
             }
 
-            // Find or create category
-            let catId = categories.find(c => c.name.toLowerCase() === catName.toLowerCase())?.id;
-            if (!catId) {
-              const validTypes = ['epp', 'material', 'herramienta', 'consumible', 'aseo'];
-              const typeToSave = validTypes.includes(rawType) ? rawType : 'material';
-
-              const { data: newCat, error: catError } = await supabase
-                .from('categories')
-                .insert({ name: catName, type: typeToSave })
-                .select('id')
-                .single();
-              if (catError) {
-                errorCount++;
-                continue;
-              }
-              catId = newCat.id;
-              // Add to local state so subsequent rows use it
-              setCategories(prev => [...prev, { id: catId, name: catName, type: typeToSave } as Category]);
-            }
+            const catId = importCategoryId;
 
             const stock = parseInt(row.Stock_Inicial) || 0;
             const minStock = parseInt(row.Stock_Minimo) || 0;
@@ -344,6 +346,7 @@ export default function ProductosPage() {
 
           toast.success(`Importación finalizada. Creados: ${successCount}, Actualizados: ${updateCount}, Errores: ${errorCount}`);
           setIsImportModalOpen(false);
+          await cleanupCategories();
           fetchProducts();
           fetchCategories();
         } catch (err: any) {
@@ -417,9 +420,13 @@ export default function ProductosPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      processImport(file);
+    if (!file) return;
+    if (!importCategoryId) {
+      toast.error('Selecciona una categoría primero');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
     }
+    processImport(file);
   };
 
   if (loading) {
@@ -442,6 +449,10 @@ export default function ProductosPage() {
         <div className="flex flex-wrap gap-2 justify-end">
           <Button variant="outline" size="sm" onClick={cleanupCategories} title="Unificar categorías duplicadas">
             <Wand2 className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" onClick={() => setIsCategoryModalOpen(true)}>
+            <Tags className="w-4 h-4 mr-2" />
+            Categorías
           </Button>
           <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
@@ -723,13 +734,30 @@ export default function ProductosPage() {
             <div className="bg-muted/50 p-4 rounded-lg border border-border text-sm space-y-3">
               <p>Para asegurar una importación exitosa, sigue estos pasos:</p>
               <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                <li>Selecciona la categoría destino.</li>
                 <li>Descarga la plantilla CSV.</li>
                 <li>Llénala con tus productos (en Excel, usa "Guardar como CSV").</li>
                 <li>Sube el archivo aquí.</li>
               </ol>
               <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-                Nota: Si la categoría no existe, se creará. En ese caso, llena la columna <b>Tipo_Principal</b> con: <i>epp, material, herramienta, consumible, o aseo</i>. Si el producto ya existe, se actualizará su stock.
+                Nota: Todos los productos del CSV se asignarán a la categoría seleccionada. Si el producto ya existe, se actualizará su stock.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Categoría Destino</Label>
+              <Select value={importCategoryId} onValueChange={(val) => setImportCategoryId(val || '')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona una categoría...">
+                    {categories.find(c => c.id === importCategoryId)?.name || 'Selecciona una categoría...'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <Button variant="outline" className="w-full" onClick={handleDownloadTemplate}>
@@ -744,14 +772,86 @@ export default function ProductosPage() {
                   accept=".csv" 
                   ref={fileInputRef}
                   onChange={handleFileUpload}
-                  disabled={importing}
+                  disabled={importing || !importCategoryId}
                 />
               </div>
+              {!importCategoryId && (
+                <p className="text-xs text-amber-500">⚠ Selecciona una categoría primero</p>
+              )}
               {importing && (
                 <div className="flex items-center gap-2 text-sm text-primary mt-2">
                   <Loader2 className="w-4 h-4 animate-spin" /> Procesando importación...
                 </div>
               )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Categories Modal */}
+      <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tags className="w-5 h-5 text-primary" /> Categorías
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <div className="space-y-2 flex-1">
+                  <Label>Nueva Categoría</Label>
+                  <Input
+                    placeholder="Ej. Pinturas"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2 w-36">
+                  <Label>Tipo</Label>
+                  <Select value={newCategoryType} onValueChange={(val) => setNewCategoryType(val || 'material')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="material">Material</SelectItem>
+                      <SelectItem value="epp">EPP</SelectItem>
+                      <SelectItem value="herramienta">Herramienta</SelectItem>
+                      <SelectItem value="consumible">Consumible</SelectItem>
+                      <SelectItem value="aseo">Aseo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button className="w-full" onClick={handleAddCategory}>Agregar Categoría</Button>
+            </div>
+
+            <div className="mt-4 border rounded-md overflow-hidden max-h-60 overflow-y-auto">
+              <Table>
+                <TableHeader className="bg-muted/50 sticky top-0">
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Tipo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                        No hay categorías registradas
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    categories.map(cat => (
+                      <TableRow key={cat.id}>
+                        <TableCell className="font-medium">{cat.name}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm capitalize">{cat.type}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </div>
         </DialogContent>
