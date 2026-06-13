@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,8 +36,8 @@ export default function ProductosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('name_asc');
+  const [activeTab, setActiveTab] = usePersistentState<string>('productos-activeTab', 'all');
+  const [sortBy, setSortBy] = usePersistentState<string>('productos-sortBy', 'name_asc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 

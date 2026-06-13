@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,9 +34,9 @@ export default function EppPage() {
   const [loading, setLoading] = useState(true);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
 
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'rut'>('name_asc');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = usePersistentState<'cards' | 'table'>('epp-viewMode', 'cards');
+  const [sortBy, setSortBy] = usePersistentState<'name_asc' | 'name_desc' | 'rut'>('epp-sortBy', 'name_asc');
+  const [areaFilter, setAreaFilter] = usePersistentState<string>('epp-areaFilter', 'all');
 
   useEffect(() => {
     const fetchData = async () => {

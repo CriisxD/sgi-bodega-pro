@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,13 +42,13 @@ export default function StockPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = usePersistentState<string>('stock-selectedCategory', 'all');
   const [loading, setLoading] = useState(true);
 
   // View & Sort
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
-  const [sortBy, setSortBy] = useState<SortOption>('critical');
-  const [onlyCritical, setOnlyCritical] = useState(false);
+  const [viewMode, setViewMode] = usePersistentState<ViewMode>('stock-viewMode', 'cards');
+  const [sortBy, setSortBy] = usePersistentState<SortOption>('stock-sortBy', 'critical');
+  const [onlyCritical, setOnlyCritical] = usePersistentState<boolean>('stock-onlyCritical', false);
 
   // History Modal
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);

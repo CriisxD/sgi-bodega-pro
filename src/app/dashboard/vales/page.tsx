@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,10 +50,10 @@ export default function MisValesPage() {
 
   // Filters & View State
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [sortBy, setSortBy] = useState<SortBy>('date_desc');
+  const [viewMode, setViewMode] = usePersistentState<ViewMode>('vales-viewMode', 'cards');
+  const [statusFilter, setStatusFilter] = usePersistentState<StatusFilter>('vales-statusFilter', 'all');
+  const [typeFilter, setTypeFilter] = usePersistentState<TypeFilter>('vales-typeFilter', 'all');
+  const [sortBy, setSortBy] = usePersistentState<SortBy>('vales-sortBy', 'date_desc');
 
   useEffect(() => {
     const fetchVales = async () => {
