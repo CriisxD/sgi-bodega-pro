@@ -60,7 +60,8 @@ export default function ProductosPage() {
   // Category modal states
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryType, setNewCategoryType] = useState('material');
+  const [newCategoryType, setNewCategoryType] = useState('');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
 
   const fetchProducts = async () => {
     const { data } = await supabase
@@ -78,15 +79,41 @@ export default function ProductosPage() {
   };
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim() || !newCategoryType.trim()) return;
     try {
-      const { error } = await supabase.from('categories').insert({ name: newCategoryName.trim(), type: newCategoryType });
-      if (error) throw error;
-      toast.success('Categoría agregada');
+      if (editingCatId) {
+        const { error } = await supabase.from('categories').update({ name: newCategoryName.trim(), type: newCategoryType.trim().toLowerCase() }).eq('id', editingCatId);
+        if (error) throw error;
+        toast.success('Categoría actualizada');
+      } else {
+        const { error } = await supabase.from('categories').insert({ name: newCategoryName.trim(), type: newCategoryType.trim().toLowerCase() });
+        if (error) throw error;
+        toast.success('Categoría agregada');
+      }
       setNewCategoryName('');
+      setNewCategoryType('');
+      setEditingCatId(null);
       fetchCategories();
     } catch (err: any) {
-      toast.error('Error al agregar: ' + err.message);
+      toast.error('Error al guardar: ' + err.message);
+    }
+  };
+
+  const handleEditCat = (cat: Category) => {
+    setEditingCatId(cat.id);
+    setNewCategoryName(cat.name);
+    setNewCategoryType(cat.type || '');
+  };
+
+  const handleDeleteCat = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta categoría? Solo se podrá si no tiene productos asociados.')) return;
+    try {
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Categoría eliminada');
+      fetchCategories();
+    } catch (err: any) {
+      toast.error('Error al eliminar: ' + err.message);
     }
   };
 
@@ -94,6 +121,11 @@ export default function ProductosPage() {
     fetchProducts();
     fetchCategories();
   }, [supabase]);
+
+  const uniqueTypes = useMemo(() => {
+    const types = new Set(categories.map((c) => c.type).filter(Boolean));
+    return Array.from(types).sort();
+  }, [categories]);
 
   const filteredProducts = useMemo(() => {
     let result = products.filter(p => {
@@ -470,11 +502,11 @@ export default function ProductosPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto pb-1">
             <TabsList className="h-9">
               <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="material">Materiales</TabsTrigger>
-              <TabsTrigger value="epp">EPP</TabsTrigger>
-              <TabsTrigger value="herramienta">Herramientas</TabsTrigger>
-              <TabsTrigger value="consumible">Consumibles</TabsTrigger>
-              <TabsTrigger value="aseo">Aseo</TabsTrigger>
+              {uniqueTypes.map((type) => (
+                <TabsTrigger key={type} value={type} className="capitalize">
+                  {type}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
 
@@ -808,23 +840,29 @@ export default function ProductosPage() {
                     onChange={(e) => setNewCategoryName(e.target.value)}
                   />
                 </div>
-                <div className="space-y-2 w-36">
-                  <Label>Tipo</Label>
-                  <Select value={newCategoryType} onValueChange={(val) => setNewCategoryType(val || 'material')}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="material">Material</SelectItem>
-                      <SelectItem value="epp">EPP</SelectItem>
-                      <SelectItem value="herramienta">Herramienta</SelectItem>
-                      <SelectItem value="consumible">Consumible</SelectItem>
-                      <SelectItem value="aseo">Aseo</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 w-48">
+                  <Label>Tipo (Familia)</Label>
+                  <Input 
+                    list="category-types" 
+                    placeholder="Ej. Material, Pinturas..."
+                    value={newCategoryType}
+                    onChange={(e) => setNewCategoryType(e.target.value)}
+                  />
+                  <datalist id="category-types">
+                    {uniqueTypes.map(t => <option key={t} value={t} />)}
+                  </datalist>
                 </div>
               </div>
-              <Button className="w-full" onClick={handleAddCategory}>Agregar Categoría</Button>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={handleAddCategory}>
+                  {editingCatId ? 'Guardar Cambios' : 'Agregar Categoría'}
+                </Button>
+                {editingCatId && (
+                  <Button variant="outline" onClick={() => { setEditingCatId(null); setNewCategoryName(''); setNewCategoryType(''); }}>
+                    Cancelar
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="mt-4 border rounded-md overflow-hidden max-h-60 overflow-y-auto">
@@ -833,12 +871,13 @@ export default function ProductosPage() {
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead className="w-[100px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {categories.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">
                         No hay categorías registradas
                       </TableCell>
                     </TableRow>
@@ -847,6 +886,16 @@ export default function ProductosPage() {
                       <TableRow key={cat.id}>
                         <TableCell className="font-medium">{cat.name}</TableCell>
                         <TableCell className="text-muted-foreground text-sm capitalize">{cat.type}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" onClick={() => handleEditCat(cat)}>
+                              <FileEdit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteCat(cat.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}

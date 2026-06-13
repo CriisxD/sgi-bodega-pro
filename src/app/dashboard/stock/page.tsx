@@ -293,22 +293,23 @@ export default function StockPage() {
           </Button>
 
           <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-            {[
-              { id: 'all', label: 'Todos' },
-              { id: 'material', label: 'Materiales' },
-              { id: 'epp', label: 'EPP' },
-              { id: 'herramienta', label: 'Herramientas' },
-              { id: 'consumible', label: 'Consumibles' },
-              { id: 'aseo', label: 'Aseo' },
-            ].map((tab) => (
+            <Button
+              variant={selectedCategory === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedCategory('all')}
+              className="whitespace-nowrap"
+            >
+              Todos
+            </Button>
+            {Array.from(new Set(products.map(p => p.category?.type).filter(Boolean))).sort().map((type) => (
               <Button
-                key={tab.id}
-                variant={selectedCategory === tab.id ? 'default' : 'outline'}
+                key={type}
+                variant={selectedCategory === type ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedCategory(tab.id)}
-                className="whitespace-nowrap"
+                onClick={() => setSelectedCategory(type as string)}
+                className="whitespace-nowrap capitalize"
               >
-                {tab.label}
+                {type}
               </Button>
             ))}
           </div>
