@@ -47,7 +47,7 @@ export default function EditarValePage() {
   const router = useRouter();
   const [loadingVale, setLoadingVale] = useState(true);
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(3); // Start at items step since data is pre-loaded
   const [valeType, setValeType] = useState<ValeType>('material');
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -67,16 +67,7 @@ export default function EditarValePage() {
     }, 300);
   };
 
-  // Auto-saltar paso 1 según el rol
-  useEffect(() => {
-    if (profile?.role === 'prevencionista') {
-      setValeType('epp');
-      setStep(2);
-    } else if (profile?.role === 'supervisor') {
-      setValeType('material');
-      setStep(2);
-    }
-  }, [profile?.role]);
+  // No auto-jump by role when editing — the vale type is already set from the loaded data
 
   // Fetch workers
   useEffect(() => {
