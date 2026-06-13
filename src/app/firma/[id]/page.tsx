@@ -11,6 +11,7 @@ export default function FirmaMobilePage() {
   const params = useParams();
   const id = params.id as string;
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const [loading, setLoading] = useState(true);
   const [valeData, setValeData] = useState<any>(null);
@@ -37,6 +38,36 @@ export default function FirmaMobilePage() {
     };
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (loading || !valeData) return;
+
+    const canvas = sigCanvas.current?.getCanvas();
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const resizeCanvas = () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (width > 0 && height > 0) {
+        // Set canvas internal resolution to match displayed size
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.getContext('2d')?.scale(ratio, ratio);
+        sigCanvas.current?.clear();
+      }
+    };
+
+    // Wait a brief moment for the flex layout to fully settle
+    const timer = setTimeout(resizeCanvas, 150);
+
+    window.addEventListener('resize', resizeCanvas);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [loading, valeData]);
 
   const handleSubmit = async () => {
     if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
@@ -131,7 +162,10 @@ export default function FirmaMobilePage() {
             <Trash2 className="w-3 h-3" /> Limpiar
           </button>
         </div>
-        <div className="bg-white rounded-2xl flex-1 overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)] relative touch-none border-2 border-yellow-500/30">
+        <div 
+          ref={containerRef}
+          className="bg-white rounded-2xl flex-1 overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)] relative touch-none border-2 border-yellow-500/30"
+        >
           <SignatureCanvas 
             ref={sigCanvas}
             canvasProps={{ className: 'w-full h-full cursor-crosshair' }}
