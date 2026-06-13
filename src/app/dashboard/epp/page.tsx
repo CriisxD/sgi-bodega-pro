@@ -66,6 +66,7 @@ export default function EppPage() {
         .select(`
           *,
           product:products(*),
+          vale:vales(signature),
           authorizer:profiles!epp_records_authorized_by_fkey(full_name),
           processor:profiles!epp_records_processed_by_fkey(full_name)
         `)
@@ -366,8 +367,15 @@ export default function EppPage() {
                           {record.product?.brand && <p className="text-xs text-gray-500">Marca: {record.product.brand}</p>}
                         </td>
                         <td className="py-4 px-2 text-center">{record.quantity} {record.product?.unit}</td>
-                        <td className="py-4 px-2 text-center align-bottom">
-                          <div className="w-32 mx-auto border-b border-gray-400 mt-6"></div>
+                        <td className="py-2 px-2 text-center align-middle h-16">
+                          {record.vale && record.vale.signature ? (
+                            <div className="flex flex-col items-center justify-center">
+                              <img src={record.vale.signature} alt="Firma Trabajador" className="h-12 object-contain" />
+                              <div className="w-32 border-b border-gray-400 mt-1"></div>
+                            </div>
+                          ) : (
+                            <div className="w-32 mx-auto border-b border-gray-400 mt-6"></div>
+                          )}
                         </td>
                       </tr>
                     ))}

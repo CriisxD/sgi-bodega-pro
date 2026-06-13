@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,11 +23,15 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
+  Signature,
+  Trash2,
+  Save,
 } from 'lucide-react';
+import SignatureCanvas from 'react-signature-canvas';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { Vale, ValeItem } from '@/lib/types';
+import type { Vale } from '@/lib/types';
 
 const valeTypeLabels: Record<string, string> = {
   epp: 'EPP',
@@ -51,16 +56,18 @@ export default function DespachoPage() {
   const [selectedVale, setSelectedVale] = useState<Vale | null>(null);
   const [editableItems, setEditableItems] = useState<Record<string, number>>({});
   const [processing, setProcessing] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const sigCanvas = useRef<SignatureCanvas>(null);
 
   const handleSelectVale = (vale: Vale) => {
     setSelectedVale(vale);
     const initialItems: Record<string, number> = {};
     vale.items?.forEach(item => {
-      // If stock is less than quantity requested, suggest what is available, otherwise suggest full quantity
       const stock = item.product?.stock || 0;
       initialItems[item.id] = Math.min(item.quantity, stock > 0 ? stock : 0);
     });
     setEditableItems(initialItems);
+    setSignatureData(null);
   };
 
   const fetchVales = async () => {
@@ -87,8 +94,6 @@ export default function DespachoPage() {
 
   useEffect(() => {
     fetchVales();
-
-    // Real-time subscription for new vales
     const channel = supabase
       .channel('vales-pendientes')
       .on(
@@ -113,30 +118,31 @@ export default function DespachoPage() {
     );
   });
 
-  const processVale = async () => {
+  const handleProcess = async () => {
     if (!selectedVale || !profile) return;
+    
+    if (selectedVale.type === 'epp' && !signatureData) {
+      toast.error('La firma del trabajador es obligatoria para entregar EPP');
+      return;
+    }
+
     setProcessing(true);
 
     try {
-      // Process each item
       for (const item of selectedVale.items || []) {
         const qtyToDeliver = editableItems[item.id] ?? item.quantity;
-
-        // Always update the vale_items record to reflect what was actually delivered
         await supabase
           .from('vale_items')
           .update({ quantity_delivered: qtyToDeliver })
           .eq('id', item.id);
 
-        if (qtyToDeliver <= 0) continue; // Skip stock deduction and records if nothing is delivered
+        if (qtyToDeliver <= 0) continue;
 
-        // Decrease stock
         const { error: stockError } = await supabase.rpc('decrease_stock', {
           p_product_id: item.product_id,
           p_quantity: qtyToDeliver,
         });
 
-        // If RPC doesn't exist, do it manually
         if (stockError) {
           await supabase
             .from('products')
@@ -144,7 +150,6 @@ export default function DespachoPage() {
             .eq('id', item.product_id);
         }
 
-        // Create stock movement
         await supabase.from('stock_movements').insert({
           product_id: item.product_id,
           type: 'salida',
@@ -155,7 +160,6 @@ export default function DespachoPage() {
           created_by: profile.id,
         });
 
-        // Type-specific processing
         if (selectedVale.type === 'epp') {
           await supabase.from('epp_records').insert({
             worker_id: selectedVale.worker_id,
@@ -179,18 +183,19 @@ export default function DespachoPage() {
         }
       }
 
-      // Mark vale as processed
       await supabase
         .from('vales')
         .update({
           status: 'procesado',
           processed_at: new Date().toISOString(),
           processed_by: profile.id,
+          signature: signatureData 
         })
         .eq('id', selectedVale.id);
 
       toast.success(`Vale #${selectedVale.vale_number} procesado exitosamente`);
       setSelectedVale(null);
+      setSignatureData(null);
       fetchVales();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
@@ -210,7 +215,6 @@ export default function DespachoPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm">
@@ -229,7 +233,6 @@ export default function DespachoPage() {
         </div>
       </div>
 
-      {/* Vales List */}
       {filteredVales.length === 0 ? (
         <Card className="card-glow border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -299,21 +302,6 @@ export default function DespachoPage() {
                       </Button>
                     </div>
                   </div>
-
-                  {/* Items preview */}
-                  <div className="mt-3 pt-3 border-t border-border/30">
-                    <div className="flex flex-wrap gap-1.5">
-                      {(vale.items || []).map((item) => (
-                        <Badge
-                          key={item.id}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {item.product?.name} x{item.quantity}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             );
@@ -321,14 +309,15 @@ export default function DespachoPage() {
         </div>
       )}
 
-      {/* Process Dialog */}
       <Dialog open={!!selectedVale} onOpenChange={() => setSelectedVale(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <PackageCheck className="w-5 h-5 text-primary" />
+            <DialogTitle className="text-xl">
               Procesar Vale #{selectedVale?.vale_number}
             </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Revisa las cantidades reales a entregar al trabajador <span className="font-bold text-primary">{selectedVale?.worker?.name}</span>.
+            </p>
           </DialogHeader>
 
           {selectedVale && (
@@ -343,10 +332,6 @@ export default function DespachoPage() {
                   <Badge variant="outline" className={valeTypeBadgeColors[selectedVale.type]}>
                     {valeTypeLabels[selectedVale.type]}
                   </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Autorizado por</span>
-                  <span className="text-sm">{selectedVale.creator?.full_name}</span>
                 </div>
               </div>
 
@@ -367,39 +352,23 @@ export default function DespachoPage() {
                       >
                         <div>
                           <p className="text-sm font-medium">{item.product?.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Stock actual: {item.product?.stock} {item.product?.unit}
-                          </p>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Entregar:</span>
-                            <Input
-                              type="number"
-                              min="0"
-                              max={item.quantity}
-                              className="w-16 h-8 text-center"
-                              value={editableItems[item.id] !== undefined ? editableItems[item.id] : item.quantity}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value) || 0;
-                                setEditableItems(prev => ({
-                                  ...prev, 
-                                  [item.id]: Math.min(Math.max(val, 0), item.quantity)
-                                }));
-                              }}
-                            />
-                            <span className="text-sm font-bold text-muted-foreground">/ {item.quantity}</span>
-                          </div>
-                          {insufficientStock && (
-                            <p className="text-[10px] text-destructive font-medium">
-                              ¡Stock insuficiente para la cantidad pedida!
-                            </p>
-                          )}
-                          {(editableItems[item.id] === 0) && (
-                            <p className="text-[10px] text-muted-foreground font-medium">
-                              No se entregará este ítem
-                            </p>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max={item.quantity}
+                            className="w-16 h-8 text-center"
+                            value={editableItems[item.id] !== undefined ? editableItems[item.id] : item.quantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setEditableItems(prev => ({
+                                ...prev, 
+                                [item.id]: Math.min(Math.max(val, 0), item.quantity)
+                              }));
+                            }}
+                          />
+                          <span className="text-sm font-bold text-muted-foreground">/ {item.quantity}</span>
                         </div>
                       </div>
                     );
@@ -407,20 +376,48 @@ export default function DespachoPage() {
                 </div>
               </div>
 
-              {selectedVale.notes && (
-                <div className="p-3 rounded-lg bg-muted/30">
-                  <p className="text-xs text-muted-foreground mb-1">Observaciones:</p>
-                  <p className="text-sm">{selectedVale.notes}</p>
+              {/* Recuadro de Firma */}
+              <div className="mt-6 border-t pt-6">
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="font-bold flex items-center gap-2">
+                    <Signature className="w-4 h-4 text-primary" /> 
+                    Firma del Trabajador {selectedVale?.type === 'epp' && <span className="text-destructive">*Obligatoria</span>}
+                  </Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      sigCanvas.current?.clear();
+                      setSignatureData(null);
+                    }}
+                    className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" /> Limpiar
+                  </Button>
                 </div>
-              )}
+                <div className="border-2 border-dashed border-border rounded-xl bg-card overflow-hidden">
+                  <SignatureCanvas 
+                    ref={sigCanvas}
+                    canvasProps={{ className: 'w-full h-40 cursor-crosshair touch-none' }}
+                    onEnd={() => {
+                      if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+                        setSignatureData(sigCanvas.current.toDataURL('image/png'));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setSelectedVale(null)}>
+            <Button variant="ghost" onClick={() => setSelectedVale(null)}>
               Cancelar
             </Button>
-            <Button onClick={processVale} disabled={processing}>
+            <Button 
+              onClick={handleProcess} 
+              disabled={processing || (selectedVale?.type === 'epp' && !signatureData)}
+            >
               {processing ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -428,8 +425,8 @@ export default function DespachoPage() {
                 </>
               ) : (
                 <>
-                  <PackageCheck className="w-4 h-4 mr-2" />
-                  Confirmar Despacho
+                  <Save className="w-4 h-4 mr-2" />
+                  Confirmar Entrega
                 </>
               )}
             </Button>
