@@ -20,6 +20,7 @@ import {
   PackagePlus,
   Undo2,
   Shield,
+  Zap,
 } from 'lucide-react';
 import { HormibalLogo } from '@/components/shared/hormibal-logo';
 import { Button } from '@/components/ui/button';
@@ -111,6 +112,12 @@ const navItems: NavItem[] = [
     title: 'Reportes',
     href: '/dashboard/reportes',
     icon: <BarChart3 className="w-5 h-5" />,
+    roles: ['admin'],
+  },
+  {
+    title: 'Impacto MVP',
+    href: '/dashboard/resultados',
+    icon: <Zap className="w-5 h-5 text-yellow-400" />,
     roles: ['admin'],
   },
 ];
