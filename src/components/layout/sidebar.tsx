@@ -53,7 +53,7 @@ const navItems: NavItem[] = [
     title: 'Vales',
     href: '/dashboard/vales',
     icon: <FileText className="w-5 h-5" />,
-    roles: ['admin', 'supervisor', 'prevencionista'],
+    roles: ['admin', 'supervisor', 'prevencionista', 'bodeguero'],
   },
   // --- Operaciones de Bodega (Bodeguero opera, Admin supervisa) ---
   {

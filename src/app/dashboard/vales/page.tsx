@@ -6,18 +6,53 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, Loader2, FileText, FileX2 } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
+  Search, 
+  Loader2, 
+  FileText, 
+  FileX2, 
+  LayoutGrid, 
+  List, 
+  ArrowDownWideNarrow, 
+  ArrowUpNarrowWide 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import type { Vale } from '@/lib/types';
 
+type ViewMode = 'cards' | 'table';
+type StatusFilter = 'all' | 'pendiente' | 'procesado';
+type TypeFilter = 'all' | 'material' | 'epp' | 'cargo_personal' | 'uso_diario';
+type SortBy = 'date_desc' | 'date_asc' | 'status';
+
 export default function MisValesPage() {
   const { profile } = useAuth();
   const supabase = createClient();
   const [vales, setVales] = useState<Vale[]>([]);
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Filters & View State
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('date_desc');
 
   useEffect(() => {
     const fetchVales = async () => {
@@ -74,14 +109,38 @@ export default function MisValesPage() {
     };
   }, [supabase, profile]);
 
-  const filteredVales = vales.filter((v) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      v.vale_number.toString().includes(s) ||
-      (v.worker?.name || '').toLowerCase().includes(s)
-    );
-  });
+  const filteredVales = vales
+    .filter((v) => {
+      // Search filter
+      if (search) {
+        const s = search.toLowerCase();
+        const matchesSearch = 
+          v.vale_number.toString().includes(s) ||
+          (v.worker?.name || '').toLowerCase().includes(s);
+        if (!matchesSearch) return false;
+      }
+      // Status filter
+      if (statusFilter !== 'all' && v.status !== statusFilter) return false;
+      // Type filter
+      if (typeFilter !== 'all' && v.type !== typeFilter) return false;
+      
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'date_desc') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (sortBy === 'date_asc') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (sortBy === 'status') {
+        if (a.status === 'pendiente' && b.status !== 'pendiente') return -1;
+        if (b.status === 'pendiente' && a.status !== 'pendiente') return 1;
+        // fallback to date desc
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return 0;
+    });
 
   if (loading) {
     return (
@@ -93,23 +152,87 @@ export default function MisValesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">
-            {profile?.role === 'admin' ? 'Todos los Vales' : 'Mis Vales Emitidos'}
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            {profile?.role === 'admin' ? 'Auditoría y registro de todos los vales emitidos.' : 'Historial de vales creados por ti.'}
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold">
+              {profile?.role === 'admin' ? 'Todos los Vales' : 'Mis Vales Emitidos'}
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {profile?.role === 'admin' ? 'Auditoría y registro de todos los vales emitidos.' : 'Historial de vales creados por ti.'}
+            </p>
+          </div>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por vale o nombre..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+
+        <div className="flex flex-col xl:flex-row gap-3 xl:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-1">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por vale o trabajador..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Tipo de vale" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los tipos</SelectItem>
+                <SelectItem value="material">Material</SelectItem>
+                <SelectItem value="epp">EPP</SelectItem>
+                <SelectItem value="cargo_personal">Cargo Personal</SelectItem>
+                <SelectItem value="uso_diario">Uso Diario</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="procesado">Procesado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <div className="flex items-center gap-2">
+                  {sortBy === 'date_desc' && <ArrowDownWideNarrow className="w-4 h-4" />}
+                  {sortBy === 'date_asc' && <ArrowUpNarrowWide className="w-4 h-4" />}
+                  {sortBy === 'status' && <List className="w-4 h-4" />}
+                  <SelectValue placeholder="Ordenar por" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date_desc">Más recientes</SelectItem>
+                <SelectItem value="date_asc">Más antiguos</SelectItem>
+                <SelectItem value="status">Pendientes primero</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg self-start xl:self-auto shrink-0">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'cards' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Vista de tarjetas"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Vista de tabla"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -121,9 +244,11 @@ export default function MisValesPage() {
             </div>
             <h3 className="text-lg font-semibold">No se encontraron vales</h3>
             <p className="text-sm text-muted-foreground mt-1 mb-4">
-              {search ? 'Sin resultados para la búsqueda' : 'Aún no has creado ningún vale.'}
+              {search || statusFilter !== 'all' || typeFilter !== 'all' 
+                ? 'Sin resultados para los filtros actuales' 
+                : 'Aún no has creado ningún vale.'}
             </p>
-            {!search && (
+            {!search && statusFilter === 'all' && typeFilter === 'all' && (
               <Link href="/dashboard/vales/nuevo" className="text-primary hover:underline font-medium text-sm">
                 + Crear el primer vale
               </Link>
@@ -131,64 +256,114 @@ export default function MisValesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {filteredVales.map((vale) => (
-            <Card key={vale.id} className="card-glow border-border/50">
-              <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mt-1 shrink-0">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold font-mono">#{vale.vale_number}</span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          vale.status === 'pendiente'
-                            ? 'bg-warning/15 text-warning border-warning/30'
-                            : 'bg-success/15 text-success border-success/30'
-                        }
-                      >
-                        {vale.status}
-                      </Badge>
-                      <Badge variant="secondary" className="uppercase text-[10px]">
-                        {vale.type.replace('_', ' ')}
-                      </Badge>
+        <>
+          {viewMode === 'table' ? (
+            <div className="rounded-md border border-border/50 bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="w-[100px]">Vale #</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Trabajador</TableHead>
+                    <TableHead>Creado Por</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Ítems</TableHead>
+                    <TableHead>Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredVales.map((vale) => (
+                    <TableRow key={vale.id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono font-medium">#{vale.vale_number}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="uppercase text-[10px]">
+                          {vale.type.replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{vale.worker?.name || 'N/A'}</TableCell>
+                      <TableCell>{vale.creator?.full_name || 'N/A'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {format(new Date(vale.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+                      </TableCell>
+                      <TableCell>{vale.items?.length || 0}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            vale.status === 'pendiente'
+                              ? 'bg-warning/15 text-warning border-warning/30'
+                              : 'bg-success/15 text-success border-success/30'
+                          }
+                        >
+                          {vale.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {filteredVales.map((vale) => (
+                <Card key={vale.id} className="card-glow border-border/50">
+                  <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mt-1 shrink-0">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold font-mono">#{vale.vale_number}</span>
+                          <Badge
+                            variant="outline"
+                            className={
+                              vale.status === 'pendiente'
+                                ? 'bg-warning/15 text-warning border-warning/30'
+                                : 'bg-success/15 text-success border-success/30'
+                            }
+                          >
+                            {vale.status}
+                          </Badge>
+                          <Badge variant="secondary" className="uppercase text-[10px]">
+                            {vale.type.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Trabajador:</span> {vale.worker?.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {format(new Date(vale.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+                          {' · '}
+                          {vale.creator?.full_name ? `Por: ${vale.creator.full_name} · ` : ''}
+                          {vale.items?.length || 0} ítems
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm">
-                      <span className="text-muted-foreground">Trabajador:</span> {vale.worker?.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(vale.created_at), "d MMM yyyy, HH:mm", { locale: es })}
-                      {' · '}
-                      {vale.creator?.full_name ? `Por: ${vale.creator.full_name} · ` : ''}
-                      {vale.items?.length || 0} ítems
-                    </p>
-                  </div>
-                </div>
 
-                <div className="text-left sm:text-right bg-muted/20 p-3 sm:p-0 sm:bg-transparent rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Ítems solicitados
-                  </p>
-                  <div className="flex flex-col sm:items-end gap-1">
-                    {(vale.items || []).slice(0, 2).map((item) => (
-                      <span key={item.id} className="text-xs font-medium truncate max-w-[200px] sm:max-w-none">
-                        x{item.quantity} {item.product?.name}
-                      </span>
-                    ))}
-                    {(vale.items || []).length > 2 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        + {(vale.items || []).length - 2} más
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <div className="text-left sm:text-right bg-muted/20 p-3 sm:p-0 sm:bg-transparent rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Ítems solicitados
+                      </p>
+                      <div className="flex flex-col sm:items-end gap-1">
+                        {(vale.items || []).slice(0, 2).map((item) => (
+                          <span key={item.id} className="text-xs font-medium truncate max-w-[200px] sm:max-w-none">
+                            x{item.quantity} {item.product?.name}
+                          </span>
+                        ))}
+                        {(vale.items || []).length > 2 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            + {(vale.items || []).length - 2} más
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
