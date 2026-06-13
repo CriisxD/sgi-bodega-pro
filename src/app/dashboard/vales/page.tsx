@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -30,8 +31,11 @@ import {
   LayoutGrid, 
   List, 
   ArrowDownWideNarrow, 
-  ArrowUpNarrowWide 
+  ArrowUpNarrowWide,
+  Pencil,
+  Trash2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
@@ -47,6 +51,36 @@ export default function MisValesPage() {
   const supabase = createClient();
   const [vales, setVales] = useState<Vale[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteVale = async (vale: Vale) => {
+    if (!confirm('¿Seguro que deseas eliminar este vale? Se revertirá el stock si ya fue procesado y se borrará su historial.')) return;
+    setDeletingId(vale.id);
+    try {
+      if (vale.status === 'procesado') {
+        for (const item of vale.items || []) {
+           if (item.quantity_delivered && item.quantity_delivered > 0) {
+              const { error } = await supabase.rpc('increase_stock', { p_product_id: item.product_id, p_quantity: item.quantity_delivered });
+              if (error) {
+                 const { data: p } = await supabase.from('products').select('stock').eq('id', item.product_id).single();
+                 if (p) await supabase.from('products').update({ stock: p.stock + item.quantity_delivered }).eq('id', item.product_id);
+              }
+           }
+        }
+        await supabase.from('stock_movements').delete().eq('reference_id', vale.id);
+        await supabase.from('epp_records').delete().eq('vale_id', vale.id);
+        await supabase.from('tool_assignments').delete().eq('vale_id', vale.id);
+      }
+      await supabase.from('vale_items').delete().eq('vale_id', vale.id);
+      await supabase.from('vales').delete().eq('id', vale.id);
+      toast.success('Vale eliminado');
+      setVales(prev => prev.filter(v => v.id !== vale.id));
+    } catch (error: any) {
+      toast.error('Error al eliminar: ' + error.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Filters & View State
   const [search, setSearch] = useState('');
@@ -284,6 +318,9 @@ export default function MisValesPage() {
                     <TableHead>Fecha</TableHead>
                     <TableHead>Ítems</TableHead>
                     <TableHead>Estado</TableHead>
+                    {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
+                      <TableHead className="w-[100px] text-right">Acciones</TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -313,6 +350,29 @@ export default function MisValesPage() {
                           {vale.status}
                         </Badge>
                       </TableCell>
+                      {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            {vale.status === 'pendiente' && (
+                              <Link 
+                                href={`/dashboard/vales/editar/${vale.id}`}
+                                className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" })}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Link>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteVale(vale)}
+                              disabled={deletingId === vale.id}
+                            >
+                              {deletingId === vale.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -372,6 +432,28 @@ export default function MisValesPage() {
                           </span>
                         )}
                       </div>
+                      {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
+                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border/50">
+                          {vale.status === 'pendiente' && (
+                            <Link 
+                              href={`/dashboard/vales/editar/${vale.id}`}
+                              className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 text-blue-500 hover:text-blue-600" })}
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
+                            </Link>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteVale(vale)}
+                            disabled={deletingId === vale.id}
+                          >
+                            {deletingId === vale.id ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />} 
+                            Eliminar
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
