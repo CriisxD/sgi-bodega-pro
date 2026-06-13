@@ -283,7 +283,9 @@ export default function ReportesPage() {
           <Calendar className="w-4 h-4 text-primary ml-2" />
           <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v || 'all')}>
             <SelectTrigger className="w-[200px] border-0 bg-transparent shadow-none focus:ring-0">
-              <SelectValue placeholder="Seleccionar período" />
+              <SelectValue placeholder="Seleccionar período">
+                {periods.find(p => p.value === selectedPeriod)?.label}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {periods.map(p => (

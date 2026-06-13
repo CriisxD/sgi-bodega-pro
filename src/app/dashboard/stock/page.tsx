@@ -257,7 +257,9 @@ export default function StockPage() {
             <Select value={sortBy} onValueChange={(val) => setSortBy((val || 'critical') as SortOption)}>
               <SelectTrigger className="w-[170px] h-9">
                 <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                <SelectValue />
+                <SelectValue>
+                  {sortLabels[sortBy]}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {(Object.entries(sortLabels) as [SortOption, string][]).map(([value, label]) => (

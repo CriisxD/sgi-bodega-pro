@@ -478,7 +478,13 @@ export default function ProductosPage() {
             </div>
             <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name')}>
               <SelectTrigger className="w-[140px] h-9 hidden sm:flex">
-                <SelectValue placeholder="Ordenar por..." />
+                <SelectValue placeholder="Ordenar por...">
+                  {sortBy === 'name_asc' && <div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div>}
+                  {sortBy === 'name_desc' && <div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div>}
+                  {sortBy === 'stock_asc' && <div className="flex items-center"><ArrowDown01 className="w-4 h-4 mr-2" /> Menor Stock</div>}
+                  {sortBy === 'stock_desc' && <div className="flex items-center"><ArrowUp10 className="w-4 h-4 mr-2" /> Mayor Stock</div>}
+                  {sortBy === 'status' && 'Estado'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="name_asc"><div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div></SelectItem>
@@ -631,7 +637,9 @@ export default function ProductosPage() {
               <Label>Categoría <span className="text-destructive">*</span></Label>
               <Select value={formCategoryId} onValueChange={(v) => setFormCategoryId(v || '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar categoría..." />
+                  <SelectValue placeholder="Seleccionar categoría...">
+                    {categories.find(c => c.id === formCategoryId) ? `${categories.find(c => c.id === formCategoryId)?.name} (${categories.find(c => c.id === formCategoryId)?.type})` : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(cat => (
@@ -668,7 +676,15 @@ export default function ProductosPage() {
                 <Label>Unidad</Label>
                 <Select value={formUnit} onValueChange={(v) => setFormUnit(v || 'un')}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {formUnit === 'un' && 'un (Unidad)'}
+                      {formUnit === 'par' && 'par (Par)'}
+                      {formUnit === 'mt' && 'mt (Metro)'}
+                      {formUnit === 'kg' && 'kg (Kilo)'}
+                      {formUnit === 'lt' && 'lt (Litro)'}
+                      {formUnit === 'rollo' && 'rollo'}
+                      {formUnit === 'caja' && 'caja'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="un">un (Unidad)</SelectItem>

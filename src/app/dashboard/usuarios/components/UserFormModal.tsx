@@ -116,7 +116,12 @@ export function UserFormModal({ userToEdit }: UserFormModalProps) {
                 onValueChange={(val) => setFormData({ ...formData, role: val })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un rol" />
+                  <SelectValue placeholder="Selecciona un rol">
+                    {formData.role === 'admin' && 'Administrador'}
+                    {formData.role === 'supervisor' && 'Supervisor'}
+                    {formData.role === 'bodeguero' && 'Bodeguero'}
+                    {formData.role === 'prevencionista' && 'Prevencionista'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>

@@ -1,18 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Loader2, HardHat, FileText, Printer } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Loader2, HardHat, FileText, Printer, LayoutGrid, List, ArrowDownAZ, ArrowUpAZ, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Worker, EppRecord } from '@/lib/types';
@@ -24,6 +32,10 @@ export default function EppPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [sortBy, setSortBy] = useState<'name_asc' | 'name_desc' | 'rut'>('name_asc');
+  const [areaFilter, setAreaFilter] = useState<string>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,10 +74,33 @@ export default function EppPage() {
     fetchWorkerRecords();
   }, [selectedWorker, supabase]);
 
-  const filteredWorkers = workers.filter(w => {
-    const s = search.toLowerCase();
-    return w.name.toLowerCase().includes(s) || w.rut.toLowerCase().includes(s) || w.area.toLowerCase().includes(s);
-  });
+  const uniqueAreas = useMemo(() => {
+    const areas = new Set(workers.map(w => w.area).filter(Boolean));
+    return Array.from(areas).sort();
+  }, [workers]);
+
+  const filteredWorkers = useMemo(() => {
+    let result = workers.filter(w => {
+      const s = search.toLowerCase();
+      const matchesSearch = w.name.toLowerCase().includes(s) || w.rut.toLowerCase().includes(s) || w.area.toLowerCase().includes(s);
+      const matchesArea = areaFilter === 'all' || w.area === areaFilter;
+      return matchesSearch && matchesArea;
+    });
+
+    switch (sortBy) {
+      case 'name_asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name_desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      case 'rut':
+        result.sort((a, b) => a.rut.localeCompare(b.rut));
+        break;
+    }
+    
+    return result;
+  }, [workers, search, areaFilter, sortBy]);
 
   const printRecord = () => {
     window.print();
@@ -88,44 +123,146 @@ export default function EppPage() {
             Ficha de entrega por trabajador (Respaldo Legal)
           </p>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar trabajador o RUT..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filteredWorkers.map(worker => (
-          <Card 
-            key={worker.id} 
-            className="card-glow border-border/50 hover:border-primary/50 cursor-pointer transition-all"
-            onClick={() => setSelectedWorker(worker)}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 bg-chart-4/15 text-chart-4 rounded-full flex items-center justify-center shrink-0">
-                <HardHat className="w-6 h-6" />
-              </div>
-              <div className="overflow-hidden">
-                <h3 className="font-semibold text-sm truncate">{worker.name}</h3>
-                <p className="text-xs text-muted-foreground font-mono">{worker.rut}</p>
-                <div className="flex gap-2 mt-1">
-                  <Badge variant="secondary" className="text-[10px] px-1 py-0">{worker.area}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {filteredWorkers.length === 0 && (
-          <div className="col-span-full text-center py-10 opacity-50">
-            Ningún trabajador coincide con tu búsqueda.
+      <Card className="card-glow border-border/50">
+        <CardHeader className="pb-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex items-center gap-2">
+             <Button variant={viewMode === 'cards' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('cards')} title="Vista de Tarjetas">
+               <LayoutGrid className="w-4 h-4" />
+             </Button>
+             <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('table')} title="Vista de Tabla">
+               <List className="w-4 h-4" />
+             </Button>
           </div>
-        )}
-      </div>
+
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-56">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar trabajador o RUT..."
+                className="pl-9 h-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            
+            <Select value={areaFilter} onValueChange={(val) => setAreaFilter(val || 'all')}>
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Todas las áreas">
+                  {areaFilter === 'all' ? 'Todas las áreas' : areaFilter}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las áreas</SelectItem>
+                {uniqueAreas.map(area => (
+                  <SelectItem key={area} value={area}>{area}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(val) => setSortBy((val || 'name_asc') as any)}>
+              <SelectTrigger className="w-[150px] h-9 hidden sm:flex">
+                <SelectValue placeholder="Ordenar por...">
+                  {sortBy === 'name_asc' && <div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div>}
+                  {sortBy === 'name_desc' && <div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div>}
+                  {sortBy === 'rut' && <div className="flex items-center"><Hash className="w-4 h-4 mr-2" /> RUT</div>}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name_asc"><div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div></SelectItem>
+                <SelectItem value="name_desc"><div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div></SelectItem>
+                <SelectItem value="rut"><div className="flex items-center"><Hash className="w-4 h-4 mr-2" /> RUT</div></SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {viewMode === 'cards' ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredWorkers.map(worker => (
+                <Card 
+                  key={worker.id} 
+                  className="card-glow border-border/50 hover:border-primary/50 cursor-pointer transition-all"
+                  onClick={() => setSelectedWorker(worker)}
+                >
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-chart-4/15 text-chart-4 rounded-full flex items-center justify-center shrink-0">
+                      <HardHat className="w-6 h-6" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <h3 className="font-semibold text-sm truncate">{worker.name}</h3>
+                      <p className="text-xs text-muted-foreground font-mono">{worker.rut}</p>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">{worker.area}</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {filteredWorkers.length === 0 && (
+                <div className="col-span-full text-center py-10 opacity-50">
+                  Ningún trabajador coincide con tu búsqueda.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-md border border-border/50 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>RUT</TableHead>
+                    <TableHead>Área</TableHead>
+                    <TableHead>Cargo</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredWorkers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Ningún trabajador coincide con tu búsqueda.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredWorkers.map(worker => (
+                      <TableRow key={worker.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedWorker(worker)}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-chart-4/15 text-chart-4 rounded-full flex items-center justify-center shrink-0">
+                              <HardHat className="w-4 h-4" />
+                            </div>
+                            {worker.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{worker.rut}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="font-normal">{worker.area}</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{worker.position}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedWorker(worker);
+                            }}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Ver Ficha
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Dialog open={!!selectedWorker} onOpenChange={() => setSelectedWorker(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">

@@ -418,7 +418,9 @@ export default function NuevaRecepcionPage() {
               <Label>Categoría</Label>
               <Select value={newProdCat} onValueChange={(val) => setNewProdCat(val || '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar..." />
+                  <SelectValue placeholder="Seleccionar...">
+                    {categories.find(c => c.id === newProdCat) ? `${categories.find(c => c.id === newProdCat)?.name} (${categories.find(c => c.id === newProdCat)?.type})` : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(cat => (
@@ -439,7 +441,11 @@ export default function NuevaRecepcionPage() {
               <div className="space-y-2">
                 <Label>Unidad</Label>
                 <Select value={newProdUnit} onValueChange={(val) => setNewProdUnit(val || 'un')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {newProdUnit}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="un">un</SelectItem>
                     <SelectItem value="par">par</SelectItem>
