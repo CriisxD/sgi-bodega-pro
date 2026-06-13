@@ -121,7 +121,7 @@ export default function EditarValePage() {
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
-      let query = supabase.from('products').select('*, category:categories(*)').eq('active', true).order('name');
+      let query = supabase.from('products').select('*, category:categories(*)').eq('active', true).gt('stock', 0).order('name');
       if (valeType === 'epp') {
         query = query.eq('categories.type', 'epp');
       }
