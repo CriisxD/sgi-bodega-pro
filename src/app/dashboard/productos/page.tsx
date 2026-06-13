@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2 } from 'lucide-react';
+import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2, Trash2 } from 'lucide-react';
 import type { Product, Category, ProductCategory } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -113,6 +113,23 @@ export default function ProductosPage() {
       fetchProducts();
     } catch (error: any) {
       toast.error('Error al actualizar: ' + error.message);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este producto? Esto no se puede deshacer.')) return;
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) {
+        // If it fails (likely due to foreign key constraints), fallback to soft delete
+        toast.error('El producto tiene historial, así que fue desactivado en vez de eliminado.');
+        await supabase.from('products').update({ active: false }).eq('id', id);
+      } else {
+        toast.success('Producto eliminado exitosamente');
+      }
+      fetchProducts();
+    } catch (error: any) {
+      toast.error('Error al eliminar: ' + error.message);
     }
   };
 
@@ -490,6 +507,15 @@ export default function ProductosPage() {
                             title={product.active ? 'Desactivar' : 'Activar'}
                           >
                             <Package className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteProduct(product.id)}
+                            title="Eliminar permanentemente"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
