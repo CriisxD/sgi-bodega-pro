@@ -9,6 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -55,6 +62,7 @@ export default function DespachoPage() {
   const supabase = createClient();
   const [vales, setVales] = useState<Vale[]>([]);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [selectedVale, setSelectedVale] = useState<Vale | null>(null);
   const [editableItems, setEditableItems] = useState<Record<string, number | ''>>({});
@@ -143,13 +151,14 @@ export default function DespachoPage() {
   }, [selectedVale, supabase, signatureData]);
 
   const filteredVales = vales.filter((v) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      v.vale_number.toString().includes(s) ||
-      (v.worker?.name || '').toLowerCase().includes(s) ||
-      (v.worker?.rut || '').toLowerCase().includes(s)
-    );
+    const matchesSearch = !search || 
+      v.vale_number.toString().includes(search.toLowerCase()) ||
+      (v.worker?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (v.worker?.rut || '').toLowerCase().includes(search.toLowerCase());
+      
+    const matchesType = typeFilter === 'all' || v.type === typeFilter;
+    
+    return matchesSearch && matchesType;
   });
 
   const handleProcess = async () => {
@@ -251,21 +260,33 @@ export default function DespachoPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm">
-            {filteredVales.length} vale{filteredVales.length !== 1 && 's'} pendiente
-            {filteredVales.length !== 1 && 's'}
+            {filteredVales.length} vale{filteredVales.length !== 1 && 's'} pendiente{filteredVales.length !== 1 && 's'}
           </p>
         </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por N°, nombre o RUT..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={typeFilter} onValueChange={(val) => val && setTypeFilter(val)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Todos los tipos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los tipos</SelectItem>
+              <SelectItem value="epp">EPP</SelectItem>
+              <SelectItem value="consumo">Consumo</SelectItem>
+              <SelectItem value="herramienta">Herramienta</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar N°, nombre o RUT..."
+              className="pl-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -325,14 +346,31 @@ export default function DespachoPage() {
                           {format(new Date(vale.created_at), "d MMM HH:mm", { locale: es })}
                           {' · '}Por: {vale.creator?.full_name}
                         </p>
+                        
+                        {/* Items preview */}
+                        <div className="mt-3 bg-muted/30 rounded-md p-2 border border-border/50">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+                            Ítems a entregar ({vale.items?.length || 0}):
+                          </p>
+                          <ul className="text-sm space-y-1">
+                            {vale.items?.slice(0, 2).map((item) => (
+                              <li key={item.id} className="flex justify-between gap-4">
+                                <span className="truncate">{item.product?.name}</span>
+                                <span className="font-medium shrink-0">x{item.quantity}</span>
+                              </li>
+                            ))}
+                            {(vale.items?.length || 0) > 2 && (
+                              <li className="text-xs text-muted-foreground italic">
+                                + {(vale.items?.length || 0) - 2} ítem(s) más...
+                              </li>
+                            )}
+                          </ul>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        {(vale.items || []).length} ítem{(vale.items || []).length !== 1 && 's'}
-                      </p>
-                      <Button size="sm" className="mt-2">
+                    <div className="text-right shrink-0 mt-2 sm:mt-0">
+                      <Button size="sm">
                         <PackageCheck className="w-4 h-4 mr-1" />
                         Procesar
                       </Button>
