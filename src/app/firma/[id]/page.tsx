@@ -3,21 +3,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { saveSignatureRemote, getValeForSignature } from '@/app/actions/signature';
-import SignatureCanvas from 'react-signature-canvas';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, PenTool, Trash2 } from 'lucide-react';
+import { FullScreenSignatureModal } from '@/components/shared/full-screen-signature';
 
 export default function FirmaMobilePage() {
   const params = useParams();
   const id = params.id as string;
-  const sigCanvas = useRef<SignatureCanvas>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   const [loading, setLoading] = useState(true);
   const [valeData, setValeData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [isFullScreenSignatureOpen, setIsFullScreenSignatureOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,46 +39,14 @@ export default function FirmaMobilePage() {
     fetchData();
   }, [id]);
 
-  useEffect(() => {
-    if (loading || !valeData) return;
-
-    const canvas = sigCanvas.current?.getCanvas();
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const resizeCanvas = () => {
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      if (width > 0 && height > 0) {
-        // Set canvas internal resolution to match displayed size
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        canvas.width = width * ratio;
-        canvas.height = height * ratio;
-        canvas.getContext('2d')?.scale(ratio, ratio);
-        sigCanvas.current?.clear();
-      }
-    };
-
-    // Wait a brief moment for the flex layout to fully settle
-    const timer = setTimeout(resizeCanvas, 150);
-
-    window.addEventListener('resize', resizeCanvas);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, [loading, valeData]);
-
   const handleSubmit = async () => {
-    if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
+    if (!signatureData) {
       alert('Por favor, dibuje su firma antes de enviar.');
       return;
     }
 
     setSubmitting(true);
-    const signatureBase64 = sigCanvas.current.toDataURL('image/png');
-    
-    const res = await saveSignatureRemote(id, signatureBase64);
+    const res = await saveSignatureRemote(id, signatureData);
     
     if (res.success) {
       setSuccess(true);
@@ -152,38 +120,66 @@ export default function FirmaMobilePage() {
         </ul>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-[300px]">
-        <div className="flex justify-between items-center mb-2 px-1">
-          <p className="font-bold text-sm text-yellow-500">Dibuja tu firma aquí abajo:</p>
-          <button 
-            onClick={() => sigCanvas.current?.clear()}
-            className="text-xs text-red-400 flex items-center gap-1 bg-red-400/10 px-2 py-1 rounded hover:bg-red-400/20"
+       <div className="flex-grow flex flex-col justify-center min-h-[200px]">
+        {!signatureData ? (
+          <Button
+            type="button"
+            onClick={() => setIsFullScreenSignatureOpen(true)}
+            className="w-full h-40 border-2 border-dashed border-white/20 hover:border-yellow-500/50 bg-white/5 hover:bg-yellow-500/5 text-gray-400 hover:text-yellow-500 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all font-semibold"
           >
-            <Trash2 className="w-3 h-3" /> Limpiar
-          </button>
-        </div>
-        <div 
-          ref={containerRef}
-          className="bg-white rounded-2xl flex-1 overflow-hidden shadow-[0_0_15px_rgba(255,255,255,0.1)] relative touch-none border-2 border-yellow-500/30"
-        >
-          <SignatureCanvas 
-            ref={sigCanvas}
-            canvasProps={{ className: 'w-full h-full cursor-crosshair' }}
-            backgroundColor="white"
-            penColor="black"
-          />
-        </div>
+            <PenTool className="w-8 h-8 animate-pulse text-yellow-500" />
+            <span className="text-base text-white">Presione aquí para firmar</span>
+            <span className="text-xs font-normal text-gray-400">La pantalla se abrirá completa y de costado para firmar mejor</span>
+          </Button>
+        ) : (
+          <div className="border border-white/10 rounded-2xl bg-white/5 overflow-hidden flex flex-col items-center justify-center p-6 relative">
+            <div className="absolute top-2 right-2 bg-green-500 text-black text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
+              <CheckCircle className="w-3 h-3" /> Firma Capturada
+            </div>
+            {/* Display signature image: since it is dark ink on transparent canvas, we wrap it in a white block for clarity */}
+            <div className="bg-white p-3 rounded-xl w-full max-w-[240px] h-28 flex items-center justify-center shadow-lg">
+              <img src={signatureData} alt="Firma capturada" className="h-full object-contain" />
+            </div>
+            <div className="flex gap-3 mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFullScreenSignatureOpen(true)}
+                className="text-xs h-9 border-white/10 bg-white/5 text-gray-300 hover:bg-white/10"
+              >
+                Volver a firmar
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSignatureData(null)}
+                className="text-xs h-9 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              >
+                Limpiar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 mb-4">
         <Button 
           onClick={handleSubmit} 
-          disabled={submitting} 
+          disabled={submitting || !signatureData} 
           className="w-full h-16 text-lg font-bold bg-yellow-500 hover:bg-yellow-600 text-black rounded-2xl shadow-lg"
         >
           {submitting ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : 'Enviar Firma Segura'}
         </Button>
       </div>
+
+      <FullScreenSignatureModal
+        isOpen={isFullScreenSignatureOpen}
+        onClose={() => setIsFullScreenSignatureOpen(false)}
+        onConfirm={(sig) => setSignatureData(sig)}
+        title={`Firma de ${valeData?.worker?.name || 'Trabajador'}`}
+      />
     </div>
   );
 }

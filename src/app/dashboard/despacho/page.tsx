@@ -34,7 +34,8 @@ import {
   Trash2,
   Save,
   Smartphone,
-  Wifi
+  Wifi,
+  PenTool
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { QRCodeSVG } from 'qrcode.react';
@@ -42,6 +43,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Vale } from '@/lib/types';
+import { FullScreenSignatureModal } from '@/components/shared/full-screen-signature';
 
 const valeTypeLabels: Record<string, string> = {
   epp: 'EPP',
@@ -70,6 +72,7 @@ export default function DespachoPage() {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [remoteSignatureStatus, setRemoteSignatureStatus] = useState<'waiting' | 'received'>('waiting');
   const [signatureMode, setSignatureMode] = useState<'qr' | 'local'>('qr');
+  const [isFullScreenSignatureOpen, setIsFullScreenSignatureOpen] = useState(false);
   const sigCanvas = useRef<SignatureCanvas>(null);
   const modalCanvasContainerRef = useRef<HTMLDivElement>(null);
 
@@ -591,30 +594,36 @@ export default function DespachoPage() {
                 ) : (
                   // Firma Local (Pantalla Táctil o Mouse)
                   <div className="space-y-3">
-                    <div 
-                      ref={modalCanvasContainerRef}
-                      className="bg-white rounded-xl overflow-hidden border-2 border-dashed border-border h-36 relative touch-none"
-                    >
-                      <SignatureCanvas 
-                        ref={sigCanvas}
-                        canvasProps={{ className: 'w-full h-full cursor-crosshair' }}
-                        backgroundColor="white"
-                        penColor="black"
-                        onEnd={() => {
-                          if (sigCanvas.current) {
-                            setSignatureData(sigCanvas.current.toDataURL('image/png'));
-                          }
-                        }}
-                      />
-                      {signatureData && (
-                        <div className="absolute top-2 right-2 bg-success text-success-foreground text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
+                    {!signatureData ? (
+                      <Button
+                        type="button"
+                        onClick={() => setIsFullScreenSignatureOpen(true)}
+                        className="w-full h-28 border-2 border-dashed border-border hover:border-primary/50 bg-background/50 hover:bg-primary/5 text-muted-foreground hover:text-primary rounded-xl flex flex-col items-center justify-center gap-2 transition-all font-semibold"
+                      >
+                        <PenTool className="w-6 h-6 animate-pulse text-amber-500" />
+                        <span className="text-sm">Presione aquí para firmar en pantalla completa</span>
+                        <span className="text-[10px] font-normal text-muted-foreground">La pantalla se girará para firmar de costado</span>
+                      </Button>
+                    ) : (
+                      <div className="border border-border/80 rounded-xl bg-[#0E1524] overflow-hidden flex flex-col items-center justify-center p-5 relative">
+                        <div className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
                           <CheckCircle className="w-2.5 h-2.5" /> Firma Capturada
                         </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Dibuja la firma directamente arriba usando tu dedo en pantallas táctiles o el mouse.
-                    </p>
+                        {/* We display signature image: since signature is black stroke on transparent canvas, we show it on a light background slot so it's clearly visible */}
+                        <div className="bg-white p-2 rounded-lg w-full max-w-[200px] h-20 flex items-center justify-center">
+                          <img src={signatureData} alt="Firma capturada" className="h-full object-contain" />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsFullScreenSignatureOpen(true)}
+                          className="mt-3 text-xs h-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                        >
+                          Volver a firmar
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -646,6 +655,13 @@ export default function DespachoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FullScreenSignatureModal
+        isOpen={isFullScreenSignatureOpen}
+        onClose={() => setIsFullScreenSignatureOpen(false)}
+        onConfirm={(sig) => setSignatureData(sig)}
+        title={`Firma de ${selectedVale?.worker?.name || 'Trabajador'}`}
+      />
     </div>
   );
 }
