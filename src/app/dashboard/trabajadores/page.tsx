@@ -532,7 +532,9 @@ export default function TrabajadoresPage() {
               <div className="w-[140px]">
                 <Select value={areaFilter} onValueChange={(val) => setAreaFilter(val || 'all')}>
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Área" />
+                    <SelectValue placeholder="Área">
+                      {areaFilter === 'all' ? 'Todas las Áreas' : areaFilter}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las Áreas</SelectItem>
@@ -547,7 +549,9 @@ export default function TrabajadoresPage() {
               <div className="w-[140px]">
                 <Select value={positionFilter} onValueChange={(val) => setPositionFilter(val || 'all')}>
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Cargo" />
+                    <SelectValue placeholder="Cargo">
+                      {positionFilter === 'all' ? 'Todos los Cargos' : positionFilter}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los Cargos</SelectItem>
@@ -562,7 +566,11 @@ export default function TrabajadoresPage() {
               <div className="w-[120px]">
                 <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Estado" />
+                    <SelectValue placeholder="Estado">
+                      {statusFilter === 'all' && 'Todos'}
+                      {statusFilter === 'active' && 'Activos'}
+                      {statusFilter === 'inactive' && 'Inactivos'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos</SelectItem>
@@ -576,7 +584,13 @@ export default function TrabajadoresPage() {
               <div className="w-[150px]">
                 <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name_asc')}>
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Ordenar por" />
+                    <SelectValue placeholder="Ordenar por">
+                      {sortBy === 'name_asc' && 'Nombre (A-Z)'}
+                      {sortBy === 'name_desc' && 'Nombre (Z-A)'}
+                      {sortBy === 'rut_asc' && 'RUT'}
+                      {sortBy === 'area_asc' && 'Área (A-Z)'}
+                      {sortBy === 'position_asc' && 'Cargo (A-Z)'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="name_asc">Nombre (A-Z)</SelectItem>
