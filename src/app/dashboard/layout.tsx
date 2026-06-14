@@ -48,14 +48,14 @@ export default function DashboardLayout({
       {/* Mobile Drawer Sidebar (Sliding Panel with Backdrop) */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/60 transition-opacity duration-300 md:hidden",
+          "fixed inset-0 z-[60] bg-black/60 transition-opacity duration-300 md:hidden",
           isMobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
         onClick={() => setIsMobileMenuOpen(false)}
       >
         <div
           className={cn(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-out",
+            "fixed top-0 left-0 z-[60] w-64 h-[100dvh] bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-out",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
           onClick={(e) => e.stopPropagation()}

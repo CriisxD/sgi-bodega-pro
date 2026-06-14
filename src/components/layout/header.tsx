@@ -39,7 +39,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
           className="md:hidden"
           onClick={onMenuToggle}
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5 pointer-events-none" />
         </Button>
         <div>
           <h1 className="text-lg font-semibold">{title}</h1>

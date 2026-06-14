@@ -159,7 +159,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 pb-20 md:pb-0',
+        'md:fixed md:left-0 md:top-0 md:z-40 h-[100dvh] md:h-screen flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 pb-6 md:pb-0',
         collapsed ? 'w-[72px]' : 'w-64'
       )}
     >
@@ -270,9 +270,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         className="absolute top-20 -right-3 w-6 h-6 rounded-full border border-sidebar-border bg-sidebar flex items-center justify-center hover:bg-sidebar-accent transition-colors"
       >
         {collapsed ? (
-          <ChevronRight className="w-3 h-3 text-sidebar-foreground" />
+          <ChevronRight className="w-3 h-3 text-sidebar-foreground pointer-events-none" />
         ) : (
-          <ChevronLeft className="w-3 h-3 text-sidebar-foreground" />
+          <ChevronLeft className="w-3 h-3 text-sidebar-foreground pointer-events-none" />
         )}
       </button>
     </aside>
