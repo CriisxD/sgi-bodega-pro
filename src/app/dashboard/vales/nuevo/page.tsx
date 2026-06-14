@@ -263,15 +263,7 @@ export default function NuevoValePage() {
             <CardHeader>
               <CardTitle className="text-xl text-center">¿Qué tipo de vale necesitas?</CardTitle>
             </CardHeader>
-            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
-              <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto h-12 sm:h-10 text-base">
-                Cancelar
-              </Button>
-              <Button onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
-                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-            <CardContent className="grid gap-4 py-4 border-t border-border/10 mt-2 flex-1 overflow-y-auto">
+            <CardContent className="grid gap-4 py-4 border-t border-border/10 flex-1 overflow-y-auto">
               {valeTypeOptions.filter(t => t.roles.includes(profile?.role || '')).map((type) => {
                 const Icon = type.icon;
                 return (
@@ -298,6 +290,14 @@ export default function NuevoValePage() {
                 );
               })}
             </CardContent>
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+              <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                Cancelar
+              </Button>
+              <Button onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </CardFooter>
           </>
         )}
 
@@ -308,21 +308,8 @@ export default function NuevoValePage() {
               <CardTitle className="text-xl text-center">¿A quién se le entregará?</CardTitle>
               <p className="text-center text-sm text-muted-foreground">Puedes seleccionar varios para un vale grupal</p>
             </CardHeader>
-            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
-              <Button 
-                variant="ghost" 
-                onClick={() => setStep(1)} 
-                disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
-                className="w-full sm:w-auto h-12 sm:h-10 text-base"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
-              </Button>
-              <Button onClick={() => setStep(3)} disabled={selectedWorkers.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
-                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-            <CardContent className="space-y-4 py-4 border-t border-border/10 mt-2">
-              <div className="relative">
+            <CardContent className="space-y-4 py-4 border-t border-border/10 flex-1 flex flex-col min-h-0">
+              <div className="relative shrink-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nombre o RUT..."
@@ -333,7 +320,7 @@ export default function NuevoValePage() {
                   autoFocus
                 />
               </div>
-              <div className="grid gap-3 max-h-[50vh] overflow-y-auto pr-1 pb-2">
+              <div className="grid gap-3 flex-1 overflow-y-auto pr-1 pb-2">
                 {filteredWorkers.map((worker) => (
                   <button
                     key={worker.id}
@@ -368,6 +355,19 @@ export default function NuevoValePage() {
                 )}
               </div>
             </CardContent>
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+              <Button 
+                variant="ghost" 
+                onClick={() => setStep(1)} 
+                disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
+                className="w-full sm:w-auto h-12 sm:h-10 text-base"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
+              </Button>
+              <Button onClick={() => setStep(3)} disabled={selectedWorkers.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Siguiente <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </CardFooter>
           </>
         )}
 
@@ -377,17 +377,9 @@ export default function NuevoValePage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-xl text-center">Agrega los ítems al vale</CardTitle>
             </CardHeader>
-            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
-              <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
-              </Button>
-              <Button onClick={() => setStep(4)} disabled={cart.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
-                Revisar <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-            <CardContent className="space-y-4 py-4 border-t border-border/10 mt-2">
+            <CardContent className="space-y-4 py-4 border-t border-border/10 flex-1 flex flex-col min-h-0">
               {/* Buscador */}
-              <div className="relative mb-2">
+              <div className="relative mb-2 shrink-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
                 <Input
                   placeholder="Buscar producto en bodega..."
@@ -460,7 +452,7 @@ export default function NuevoValePage() {
 
               {/* Resumen del carrito flotante */}
               {cart.length > 0 && (
-                <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg flex items-center justify-between">
+                <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg flex items-center justify-between shrink-0">
                   <span className="font-medium text-sm text-primary">
                     {cart.length} {cart.length === 1 ? 'producto seleccionado' : 'productos seleccionados'}
                   </span>
@@ -470,6 +462,14 @@ export default function NuevoValePage() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+              <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
+              </Button>
+              <Button onClick={() => setStep(4)} disabled={cart.length === 0} className="w-full sm:w-auto h-12 sm:h-10 text-base shadow-lg shadow-primary/25">
+                Revisar <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </CardFooter>
           </>
         )}
 
@@ -481,18 +481,6 @@ export default function NuevoValePage() {
                 <CheckCircle className="w-6 h-6 text-success" /> Resumen del Vale
               </CardTitle>
             </CardHeader>
-            <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 px-6 pb-2">
-              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
-                <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
-              </Button>
-              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-primary/25">
-                {submitting ? (
-                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Creando...</>
-                ) : (
-                  <><FilePlus className="w-6 h-6 mr-2" /> Crear y Enviar a Bodega</>
-                )}
-              </Button>
-            </div>
             <CardContent className="space-y-6 pt-4 flex-1 overflow-y-auto border-t border-border/10 mt-2">
               
               {/* Info Worker */}
@@ -511,7 +499,7 @@ export default function NuevoValePage() {
               {/* Items Summary */}
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Ítems Solicitados</p>
-                <div className="space-y-2 border rounded-xl overflow-hidden bg-card/50">
+                <div className="space-y-2 border rounded-xl overflow-hidden bg-gray-50 dark:bg-card/50">
                   {cart.map((item) => (
                     <div key={item.product.id} className="flex justify-between items-center p-3 border-b last:border-0 bg-background/50">
                       <span className="text-sm font-medium">{item.product.name}</span>
@@ -533,6 +521,18 @@ export default function NuevoValePage() {
               </div>
 
             </CardContent>
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+                <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
+              </Button>
+              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-primary/25">
+                {submitting ? (
+                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Creando...</>
+                ) : (
+                  <><FilePlus className="w-6 h-6 mr-2" /> Crear y Enviar a Bodega</>
+                )}
+              </Button>
+            </CardFooter>
           </>
         )}
 
