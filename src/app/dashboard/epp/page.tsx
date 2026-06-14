@@ -159,7 +159,7 @@ export default function EppPage() {
             </div>
             
             <Select value={areaFilter} onValueChange={(val) => setAreaFilter(val || 'all')}>
-              <SelectTrigger className="w-[180px] h-9">
+              <SelectTrigger className="w-full sm:w-[180px] h-9">
                 <SelectValue placeholder="Todas las áreas">
                   {areaFilter === 'all' ? 'Todas las áreas' : areaFilter}
                 </SelectValue>
@@ -173,7 +173,7 @@ export default function EppPage() {
             </Select>
 
             <Select value={positionFilter} onValueChange={(val) => setPositionFilter(val || 'all')}>
-              <SelectTrigger className="w-[180px] h-9">
+              <SelectTrigger className="w-full sm:w-[180px] h-9">
                 <SelectValue placeholder="Todos los cargos">
                   {positionFilter === 'all' ? 'Todos los cargos' : positionFilter}
                 </SelectValue>
@@ -187,7 +187,7 @@ export default function EppPage() {
             </Select>
 
             <Select value={sortBy} onValueChange={(val) => setSortBy((val || 'name_asc') as any)}>
-              <SelectTrigger className="w-[150px] h-9 hidden sm:flex">
+              <SelectTrigger className="w-full sm:w-[150px] h-9">
                 <SelectValue placeholder="Ordenar por...">
                   {sortBy === 'name_asc' && <div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div>}
                   {sortBy === 'name_desc' && <div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div>}
@@ -237,9 +237,9 @@ export default function EppPage() {
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead>Nombre</TableHead>
-                    <TableHead>RUT</TableHead>
-                    <TableHead>Área</TableHead>
-                    <TableHead>Cargo</TableHead>
+                    <TableHead className="hidden sm:table-cell">RUT</TableHead>
+                    <TableHead className="hidden md:table-cell">Área</TableHead>
+                    <TableHead className="hidden md:table-cell">Cargo</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -261,11 +261,11 @@ export default function EppPage() {
                             {worker.name}
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{worker.rut}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-mono text-sm hidden sm:table-cell">{worker.rut}</TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <Badge variant="secondary" className="font-normal">{worker.area}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">{worker.position}</TableCell>
+                        <TableCell className="text-muted-foreground hidden md:table-cell">{worker.position}</TableCell>
                         <TableCell className="text-right">
                           <Button 
                             variant="outline" 
@@ -309,22 +309,22 @@ export default function EppPage() {
           <div className="flex-1 overflow-auto bg-muted/30 p-4 sm:p-6 print:p-0 print:bg-white print:absolute print:inset-0">
             
             {/* The Document "Paper" */}
-            <div className="print-area bg-white text-black w-[800px] min-w-[800px] mx-auto rounded-none sm:rounded-md shadow-sm sm:shadow-md border border-border/50 print:border-none print:shadow-none p-6 sm:p-10 min-h-[1050px] print:w-full print:min-w-0 print:min-h-0 print:mx-0">
+            <div className="print-area bg-white text-black w-full min-w-0 sm:w-[800px] sm:min-w-[800px] mx-auto rounded-none sm:rounded-md shadow-sm sm:shadow-md border border-border/50 print:border-none print:shadow-none p-6 sm:p-10 min-h-0 sm:min-h-[1050px] print:w-full print:min-w-0 print:min-h-0 print:mx-0">
               
               {/* Header */}
               <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tight">Sistema Gestión Integral</h2>
-                  <h3 className="text-lg font-semibold mt-1 uppercase text-gray-700">Registro de Entrega - EPP</h3>
+                  <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight">Sistema Gestión Integral</h2>
+                  <h3 className="text-base sm:text-lg font-semibold mt-1 uppercase text-gray-700">Registro de Entrega - EPP</h3>
                 </div>
-                <div className="text-right text-sm">
+                <div className="text-right text-xs sm:text-sm">
                   <p className="font-bold">HORMIBAL</p>
                   <p className="text-gray-500">Bodega Central</p>
                 </div>
               </div>
 
               {/* Worker Info */}
-              <div className="grid grid-cols-2 gap-y-3 gap-x-8 text-sm mb-6 bg-gray-50 print:bg-transparent p-4 rounded border border-gray-200 print:border-none print:p-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-y-3 gap-x-8 text-sm mb-6 bg-gray-50 print:bg-transparent p-4 rounded border border-gray-200 print:border-none print:p-0">
                 <p><span className="font-bold text-gray-600">RUT:</span> <span className="font-mono text-base">{selectedWorker?.rut}</span></p>
                 <p><span className="font-bold text-gray-600">Nombre:</span> <span className="uppercase">{selectedWorker?.name}</span></p>
                 <p><span className="font-bold text-gray-600">Cargo:</span> {selectedWorker?.position}</p>
@@ -347,7 +347,8 @@ export default function EppPage() {
                   El trabajador aún no tiene entregas de EPP registradas en el sistema.
                 </div>
               ) : (
-                <table className="w-full text-sm border-collapse mb-10">
+                <div className="overflow-x-auto print:overflow-visible">
+                  <table className="w-full text-sm border-collapse mb-10">
                   <thead>
                     <tr className="border-b-2 border-black text-left">
                       <th className="py-2 px-2 font-bold">Fecha</th>
@@ -381,6 +382,7 @@ export default function EppPage() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
               
               {/* Footer */}

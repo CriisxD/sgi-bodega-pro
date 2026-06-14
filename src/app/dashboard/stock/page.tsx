@@ -223,7 +223,7 @@ export default function StockPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-xl font-bold">Inventario de Stock</h2>
             <p className="text-muted-foreground text-sm">
@@ -231,8 +231,8 @@ export default function StockPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* View Toggle */}
+          {/* View Toggle - Desktop Only */}
+          <div className="hidden sm:flex items-center gap-2">
             <div className="flex border rounded-lg overflow-hidden">
               <Button
                 variant={viewMode === 'cards' ? 'default' : 'ghost'}
@@ -251,10 +251,38 @@ export default function StockPage() {
                 <List className="w-4 h-4" />
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-col gap-3">
+          {/* Row 1: Search */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar producto..."
+              className="pl-9 h-10 sm:h-9"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Row 2: Solo Críticos & Sort Dropdown Side-by-Side on Mobile */}
+          <div className="flex flex-row gap-2 w-full sm:w-auto">
+            {/* Critical Only Toggle */}
+            <Button
+              variant={onlyCritical ? 'destructive' : 'outline'}
+              size="sm"
+              onClick={() => setOnlyCritical(!onlyCritical)}
+              className="flex-1 sm:flex-none h-10 sm:h-9 whitespace-nowrap text-xs sm:text-sm"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
+              Solo Críticos ({lowStockCount})
+            </Button>
 
             {/* Sort */}
             <Select value={sortBy} onValueChange={(val) => setSortBy((val || 'critical') as SortOption)}>
-              <SelectTrigger className="w-[170px] h-9">
+              <SelectTrigger className="flex-1 sm:w-[170px] h-10 sm:h-9 text-xs sm:text-sm">
                 <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 shrink-0" />
                 <SelectValue>
                   {sortLabels[sortBy]}
@@ -267,37 +295,14 @@ export default function StockPage() {
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar producto..."
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          {/* Critical Only Toggle */}
-          <Button
-            variant={onlyCritical ? 'destructive' : 'outline'}
-            size="sm"
-            onClick={() => setOnlyCritical(!onlyCritical)}
-            className="whitespace-nowrap"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
-            Solo Críticos ({lowStockCount})
-          </Button>
-
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+          {/* Row 3: Category horizontal chips */}
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar -mx-4 px-4 sm:-mx-0 sm:px-0">
             <Button
               variant={selectedCategory === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory('all')}
-              className="whitespace-nowrap"
+              className="whitespace-nowrap h-8"
             >
               Todos
             </Button>
@@ -307,7 +312,7 @@ export default function StockPage() {
                 variant={selectedCategory === type ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory(type as string)}
-                className="whitespace-nowrap capitalize"
+                className="whitespace-nowrap capitalize h-8"
               >
                 {type}
               </Button>
@@ -317,8 +322,8 @@ export default function StockPage() {
       </div>
 
       {/* === CARDS VIEW === */}
-      {viewMode === 'cards' && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {(viewMode === 'cards' || viewMode === 'table') && (
+        <div className={`${viewMode === 'table' ? 'block sm:hidden' : 'block'} grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
           {filteredProducts.map((product) => {
             const isLowStock = product.stock <= product.min_stock;
             return (
@@ -335,7 +340,7 @@ export default function StockPage() {
                     </div>
                     {isLowStock && (
                       <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                         Crítico
                       </Badge>
                     )}
@@ -403,7 +408,7 @@ export default function StockPage() {
 
       {/* === TABLE VIEW === */}
       {viewMode === 'table' && (
-        <div className="border rounded-xl overflow-hidden bg-card">
+        <div className="hidden sm:block border rounded-xl overflow-hidden bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

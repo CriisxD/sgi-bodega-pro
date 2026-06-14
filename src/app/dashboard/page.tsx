@@ -271,39 +271,44 @@ export default function DashboardPage() {
 
         {/* Actions grid – 2 cols */}
         <div className="grid grid-cols-2 gap-3">
-          {myActions.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className="group relative overflow-hidden rounded-2xl p-4 flex flex-col items-center justify-center gap-3 min-h-[120px] transition-transform active:scale-95"
-            >
-              {/* Gradient background */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-90 group-hover:opacity-100 transition-opacity`}
-              />
-              {/* Glass overlay */}
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
+          {myActions.map((action, index) => {
+            const isLastOdd = index === myActions.length - 1 && myActions.length % 2 !== 0;
+            return (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={`group relative overflow-hidden rounded-2xl p-4 flex flex-col items-center justify-center gap-3 min-h-[120px] transition-transform active:scale-95 ${
+                  isLastOdd ? 'col-span-2' : ''
+                }`}
+              >
+                {/* Gradient background */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-90 group-hover:opacity-100 transition-opacity`}
+                />
+                {/* Glass overlay */}
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px]" />
 
-              {/* Badge */}
-              {action.badge != null && action.badge > 0 && (
-                <span
-                  className={`absolute top-2 right-2 ${action.badgeColor || 'bg-red-500'} text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10 animate-pulse`}
-                >
-                  {action.badge > 99 ? '99+' : action.badge}
+                {/* Badge */}
+                {action.badge != null && action.badge > 0 && (
+                  <span
+                    className={`absolute top-2 right-2 ${action.badgeColor || 'bg-red-500'} text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10 animate-pulse`}
+                  >
+                    {action.badge > 99 ? '99+' : action.badge}
+                  </span>
+                )}
+
+                {/* Icon */}
+                <div className="relative z-10 text-white drop-shadow-md">
+                  {action.icon}
+                </div>
+
+                {/* Label */}
+                <span className="relative z-10 text-white text-sm font-semibold text-center leading-tight drop-shadow-sm">
+                  {action.label}
                 </span>
-              )}
-
-              {/* Icon */}
-              <div className="relative z-10 text-white drop-shadow-md">
-                {action.icon}
-              </div>
-
-              {/* Label */}
-              <span className="relative z-10 text-white text-sm font-semibold text-center leading-tight drop-shadow-sm">
-                {action.label}
-              </span>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
         {/* ── Mobile Compact Alerts ── */}

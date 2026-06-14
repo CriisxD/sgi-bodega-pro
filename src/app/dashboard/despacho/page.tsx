@@ -69,7 +69,9 @@ export default function DespachoPage() {
   const [processing, setProcessing] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [remoteSignatureStatus, setRemoteSignatureStatus] = useState<'waiting' | 'received'>('waiting');
+  const [signatureMode, setSignatureMode] = useState<'qr' | 'local'>('qr');
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const modalCanvasContainerRef = useRef<HTMLDivElement>(null);
 
   const handleSelectVale = (vale: Vale) => {
     setSelectedVale(vale);
@@ -81,7 +83,45 @@ export default function DespachoPage() {
     setEditableItems(initialItems);
     setSignatureData(vale.signature || null);
     setRemoteSignatureStatus('waiting');
+    
+    // Auto-detect mobile screen width to default to local signing
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setSignatureMode('local');
+    } else {
+      setSignatureMode('qr');
+    }
   };
+
+  // Resize local signature canvas inside the modal
+  useEffect(() => {
+    if (!selectedVale || signatureMode !== 'local') return;
+
+    const canvas = sigCanvas.current?.getCanvas();
+    const container = modalCanvasContainerRef.current;
+    if (!canvas || !container) return;
+
+    const resizeModalCanvas = () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (width > 0 && height > 0) {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        canvas.getContext('2d')?.scale(ratio, ratio);
+        sigCanvas.current?.clear();
+        setSignatureData(null); // Clear signature data to prevent stale data
+      }
+    };
+
+    // Wait a brief moment for Dialog transition to finish
+    const timer = setTimeout(resizeModalCanvas, 250);
+
+    window.addEventListener('resize', resizeModalCanvas);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', resizeModalCanvas);
+    };
+  }, [selectedVale, signatureMode]);
 
   const fetchVales = async () => {
     const { data } = await supabase
@@ -464,10 +504,10 @@ export default function DespachoPage() {
 
               {/* Recuadro de Firma */}
               <div className="mt-6 border-t pt-6">
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-3">
                   <Label className="font-bold flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-primary" /> 
-                    Firma Remota {selectedVale?.type === 'epp' && <span className="text-destructive">*Obligatoria</span>}
+                    <Signature className="w-4 h-4 text-primary" /> 
+                    Firma del Trabajador {selectedVale?.type === 'epp' && <span className="text-destructive">*Obligatoria</span>}
                   </Label>
                   {signatureData && (
                     <Button 
@@ -476,43 +516,105 @@ export default function DespachoPage() {
                       onClick={() => {
                         setSignatureData(null);
                         setRemoteSignatureStatus('waiting');
+                        sigCanvas.current?.clear();
                       }}
                       className="h-8 text-xs text-muted-foreground hover:text-destructive"
                     >
-                      <Trash2 className="w-3 h-3 mr-1" /> Eliminar Firma
+                      <Trash2 className="w-3 h-3 mr-1" /> Limpiar Firma
                     </Button>
                   )}
                 </div>
 
-                {!signatureData ? (
-                  <div className="flex flex-col sm:flex-row gap-6 items-center bg-muted/20 p-4 rounded-xl border border-border/50">
-                    <div className="bg-white p-3 rounded-xl shadow-sm shrink-0">
-                      <QRCodeSVG 
-                        value={typeof window !== 'undefined' ? `${window.location.origin}/firma/${selectedVale.id}` : ''}
-                        size={140}
-                        bgColor="#ffffff"
-                        fgColor="#000000"
-                        level="H"
-                        includeMargin={false}
-                      />
-                    </div>
-                    <div className="text-center sm:text-left space-y-2">
-                      <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
-                        <Wifi className="w-3 h-3 animate-pulse" /> Esperando firma...
+                {/* Alternar entre QR Remoto y Firma Local */}
+                <div className="grid grid-cols-2 gap-2 mb-4 bg-muted/50 p-1 rounded-xl border">
+                  <Button
+                    type="button"
+                    variant={signatureMode === 'qr' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="text-xs font-bold rounded-lg h-9"
+                    onClick={() => {
+                      setSignatureMode('qr');
+                      setSignatureData(null);
+                      setRemoteSignatureStatus('waiting');
+                    }}
+                  >
+                    <Smartphone className="w-3.5 h-3.5 mr-1.5" />
+                    Código QR
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={signatureMode === 'local' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="text-xs font-bold rounded-lg h-9"
+                    onClick={() => {
+                      setSignatureMode('local');
+                      setSignatureData(null);
+                    }}
+                  >
+                    <Signature className="w-3.5 h-3.5 mr-1.5" />
+                    Firmar en Pantalla
+                  </Button>
+                </div>
+
+                {signatureMode === 'qr' ? (
+                  !signatureData ? (
+                    <div className="flex flex-col sm:flex-row gap-6 items-center bg-muted/20 p-4 rounded-xl border border-border/50">
+                      <div className="bg-white p-3 rounded-xl shadow-sm shrink-0">
+                        <QRCodeSVG 
+                          value={typeof window !== 'undefined' ? `${window.location.origin}/firma/${selectedVale.id}` : ''}
+                          size={140}
+                          bgColor="#ffffff"
+                          fgColor="#000000"
+                          level="H"
+                          includeMargin={false}
+                        />
                       </div>
-                      <h4 className="font-bold text-base">Que el trabajador escanee este código</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Pídele a <span className="font-bold text-foreground">{selectedVale.worker?.name}</span> que abra la cámara de su celular, apunte al código QR y firme en su pantalla. Aparecerá aquí mágicamente.
-                      </p>
+                      <div className="text-center sm:text-left space-y-2">
+                        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
+                          <Wifi className="w-3 h-3 animate-pulse" /> Esperando firma...
+                        </div>
+                        <h4 className="font-bold text-base">Que el trabajador escanee este código</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Pídele a <span className="font-bold text-foreground">{selectedVale.worker?.name}</span> que abra la cámara de su celular, apunte al código QR y firme en su pantalla. Aparecerá aquí mágicamente.
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-success/50 rounded-xl bg-success/5 overflow-hidden flex flex-col items-center justify-center p-6 relative">
+                      <div className="absolute top-2 right-2 bg-success text-success-foreground text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Recibida
+                      </div>
+                      <img src={signatureData} alt="Firma recibida" className="h-32 object-contain" />
+                      <p className="text-xs text-success font-semibold mt-2">Firma digital lista para guardar</p>
+                    </div>
+                  )
                 ) : (
-                  <div className="border-2 border-dashed border-success/50 rounded-xl bg-success/5 overflow-hidden flex flex-col items-center justify-center p-6 relative">
-                    <div className="absolute top-2 right-2 bg-success text-success-foreground text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" /> Recibida
+                  // Firma Local (Pantalla Táctil o Mouse)
+                  <div className="space-y-3">
+                    <div 
+                      ref={modalCanvasContainerRef}
+                      className="bg-white rounded-xl overflow-hidden border-2 border-dashed border-border h-36 relative touch-none"
+                    >
+                      <SignatureCanvas 
+                        ref={sigCanvas}
+                        canvasProps={{ className: 'w-full h-full cursor-crosshair' }}
+                        backgroundColor="white"
+                        penColor="black"
+                        onEnd={() => {
+                          if (sigCanvas.current) {
+                            setSignatureData(sigCanvas.current.toDataURL('image/png'));
+                          }
+                        }}
+                      />
+                      {signatureData && (
+                        <div className="absolute top-2 right-2 bg-success text-success-foreground text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
+                          <CheckCircle className="w-2.5 h-2.5" /> Firma Capturada
+                        </div>
+                      )}
                     </div>
-                    <img src={signatureData} alt="Firma recibida" className="h-32 object-contain" />
-                    <p className="text-xs text-success font-semibold mt-2">Firma digital lista para guardar</p>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Dibuja la firma directamente arriba usando tu dedo en pantallas táctiles o el mouse.
+                    </p>
                   </div>
                 )}
               </div>

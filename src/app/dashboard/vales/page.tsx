@@ -266,7 +266,7 @@ export default function MisValesPage() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg self-start xl:self-auto shrink-0">
+          <div className="hidden sm:flex items-center gap-1 bg-muted p-1 rounded-lg self-start xl:self-auto shrink-0">
             <button
               onClick={() => setViewMode('cards')}
               className={`p-1.5 rounded-md transition-colors ${viewMode === 'cards' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
@@ -307,77 +307,162 @@ export default function MisValesPage() {
       ) : (
         <>
           {viewMode === 'table' ? (
-            <div className="rounded-md border border-border/50 bg-card overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableHead className="w-[100px]">Vale #</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Trabajador</TableHead>
-                    <TableHead>Creado Por</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Ítems</TableHead>
-                    <TableHead>Estado</TableHead>
-                    {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
-                      <TableHead className="w-[100px] text-right">Acciones</TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredVales.map((vale) => (
-                    <TableRow key={vale.id} className="hover:bg-muted/30">
-                      <TableCell className="font-mono font-medium">#{vale.vale_number}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="uppercase text-[10px]">
-                          {vale.type.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{vale.worker?.name || 'N/A'}</TableCell>
-                      <TableCell>{vale.creator?.full_name || 'N/A'}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {format(new Date(vale.created_at), "d MMM yyyy, HH:mm", { locale: es })}
-                      </TableCell>
-                      <TableCell>{vale.items?.length || 0}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            vale.status === 'pendiente'
-                              ? 'bg-warning/15 text-warning border-warning/30'
-                              : 'bg-success/15 text-success border-success/30'
-                          }
-                        >
-                          {vale.status}
-                        </Badge>
-                      </TableCell>
+            <>
+              {/* Table view for desktop/tablet */}
+              <div className="hidden sm:block rounded-md border border-border/50 bg-card overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="w-[100px]">Vale #</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Trabajador</TableHead>
+                      <TableHead>Creado Por</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Ítems</TableHead>
+                      <TableHead>Estado</TableHead>
                       {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                        <TableHead className="w-[100px] text-right">Acciones</TableHead>
+                      )}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVales.map((vale) => (
+                      <TableRow key={vale.id} className="hover:bg-muted/30">
+                        <TableCell className="font-mono font-medium">#{vale.vale_number}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="uppercase text-[10px]">
+                            {vale.type.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{vale.worker?.name || 'N/A'}</TableCell>
+                        <TableCell>{vale.creator?.full_name || 'N/A'}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {format(new Date(vale.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+                        </TableCell>
+                        <TableCell>{vale.items?.length || 0}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              vale.status === 'pendiente'
+                                ? 'bg-warning/15 text-warning border-warning/30'
+                                : 'bg-success/15 text-success border-success/30'
+                            }
+                          >
+                            {vale.status}
+                          </Badge>
+                        </TableCell>
+                        {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              {vale.status === 'pendiente' && (
+                                <Link 
+                                  href={`/dashboard/vales/editar/${vale.id}`}
+                                  className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" })}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Link>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteVale(vale)}
+                                disabled={deletingId === vale.id}
+                              >
+                                {deletingId === vale.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Cards fallback for mobile */}
+              <div className="block sm:hidden grid gap-4">
+                {filteredVales.map((vale) => (
+                  <Card key={vale.id} className="card-glow border-border/50">
+                    <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mt-1 shrink-0">
+                          <FileText className="w-6 h-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold font-mono">#{vale.vale_number}</span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                vale.status === 'pendiente'
+                                  ? 'bg-warning/15 text-warning border-warning/30'
+                                  : 'bg-success/15 text-success border-success/30'
+                              }
+                            >
+                              {vale.status}
+                            </Badge>
+                            <Badge variant="secondary" className="uppercase text-[10px]">
+                              {vale.type.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">Trabajador:</span> {vale.worker?.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(vale.created_at), "d MMM yyyy, HH:mm", { locale: es })}
+                            {' · '}
+                            {vale.creator?.full_name ? `Por: ${vale.creator.full_name} · ` : ''}
+                            {vale.items?.length || 0} ítems
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-left sm:text-right bg-muted/20 p-3 sm:p-0 sm:bg-transparent rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-1">
+                          Ítems solicitados
+                        </p>
+                        <div className="flex flex-col sm:items-end gap-1">
+                          {(vale.items || []).slice(0, 2).map((item) => (
+                            <span key={item.id} className="text-xs font-medium truncate max-w-[200px] sm:max-w-none">
+                              x{item.quantity} {item.product?.name}
+                            </span>
+                          ))}
+                          {(vale.items || []).length > 2 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              + {(vale.items || []).length - 2} más
+                            </span>
+                          )}
+                        </div>
+                        {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
+                          <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-border/50">
                             {vale.status === 'pendiente' && (
                               <Link 
                                 href={`/dashboard/vales/editar/${vale.id}`}
-                                className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" })}
+                                className={buttonVariants({ variant: "outline", size: "sm", className: "h-8 text-blue-500 hover:text-blue-600" })}
                               >
-                                <Pencil className="w-4 h-4" />
+                                <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
                               </Link>
                             )}
                             <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={() => handleDeleteVale(vale)}
                               disabled={deletingId === vale.id}
                             >
-                              {deletingId === vale.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                              {deletingId === vale.id ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />} 
+                              Eliminar
                             </Button>
                           </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="grid gap-4">
               {filteredVales.map((vale) => (
@@ -394,8 +479,8 @@ export default function MisValesPage() {
                             variant="outline"
                             className={
                               vale.status === 'pendiente'
-                                ? 'bg-warning/15 text-warning border-warning/30'
-                                : 'bg-success/15 text-success border-success/30'
+                                  ? 'bg-warning/15 text-warning border-warning/30'
+                                  : 'bg-success/15 text-success border-success/30'
                             }
                           >
                             {vale.status}

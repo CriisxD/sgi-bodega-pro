@@ -214,7 +214,7 @@ export default function DevolucionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">Préstamos y Devoluciones</h2>
           <p className="text-muted-foreground text-sm">
@@ -222,8 +222,8 @@ export default function DevolucionesPage() {
           </p>
         </div>
         
-        <div className="flex gap-3">
-          <div className="relative w-64 hidden sm:block">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar trabajador o ítem..."
@@ -235,7 +235,7 @@ export default function DevolucionesPage() {
 
           <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
             <DialogTrigger render={
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Prestar Herramienta
               </Button>
@@ -250,7 +250,7 @@ export default function DevolucionesPage() {
               
               <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-4">
                 {/* Tipo de asignación */}
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setAssignType('uso_diario')}
                     className={`flex-1 p-3 rounded-lg border text-center transition-all ${
