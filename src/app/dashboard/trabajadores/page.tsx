@@ -38,7 +38,8 @@ import {
   LayoutGrid, 
   List, 
   RotateCcw, 
-  SlidersHorizontal 
+  SlidersHorizontal,
+  Plus
 } from 'lucide-react';
 import type { Worker } from '@/lib/types';
 import { toast } from 'sonner';
@@ -101,6 +102,11 @@ export default function TrabajadoresPage() {
   const [editingItemName, setEditingItemName] = useState<string | null>(null);
   const [newItemValue, setNewItemValue] = useState('');
   const [updatingItem, setUpdatingItem] = useState(false);
+  
+  // Custom Areas & Cargos persistent state
+  const [customAreas, setCustomAreas] = usePersistentState<string[]>('trabajadores-customAreas', []);
+  const [customCargos, setCustomCargos] = usePersistentState<string[]>('trabajadores-customCargos', []);
+  const [createItemName, setCreateItemName] = useState('');
 
   const fetchWorkers = async () => {
     const { data } = await supabase
@@ -127,6 +133,9 @@ export default function TrabajadoresPage() {
         .eq('area', oldName);
         
       if (error) throw error;
+      
+      // Update custom list if it was a custom area
+      setCustomAreas(prev => prev.map(a => a === oldName ? newName.trim() : a));
       
       toast.success(`Área renombrada de "${oldName}" a "${newName.trim()}"`);
       setEditingItemName(null);
@@ -155,6 +164,9 @@ export default function TrabajadoresPage() {
         
       if (error) throw error;
       
+      // Update custom list if it was a custom position
+      setCustomCargos(prev => prev.map(c => c === oldName ? newName.trim() : c));
+      
       toast.success(`Cargo renombrado de "${oldName}" a "${newName.trim()}"`);
       setEditingItemName(null);
       setNewItemValue('');
@@ -166,19 +178,93 @@ export default function TrabajadoresPage() {
     }
   };
 
+  const handleAddCustomArea = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return toast.error('El nombre no puede estar vacío');
+    if (uniqueAreas.some(a => a.toLowerCase() === trimmed.toLowerCase())) {
+      return toast.error('Esta área ya existe');
+    }
+    setCustomAreas(prev => [...prev, trimmed]);
+    setCreateItemName('');
+    toast.success(`Área "${trimmed}" agregada a la lista de opciones`);
+  };
+
+  const handleAddCustomCargo = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return toast.error('El nombre no puede estar vacío');
+    if (uniquePositions.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
+      return toast.error('Este cargo ya existe');
+    }
+    setCustomCargos(prev => [...prev, trimmed]);
+    setCreateItemName('');
+    toast.success(`Cargo "${trimmed}" agregado a la lista de opciones`);
+  };
+
+  const handleDeleteArea = async (name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar el área "${name}"? Todos los trabajadores en esta área serán reasignados a "Sin Área".`)) return;
+    
+    setUpdatingItem(true);
+    try {
+      // Update database
+      const { error } = await supabase
+        .from('workers')
+        .update({ area: 'Sin Área' })
+        .eq('area', name);
+        
+      if (error) throw error;
+      
+      // Remove from custom list
+      setCustomAreas(prev => prev.filter(a => a !== name));
+      
+      toast.success(`Área "${name}" eliminada exitosamente`);
+      fetchWorkers();
+    } catch (e: any) {
+      toast.error('Error al eliminar área: ' + e.message);
+    } finally {
+      setUpdatingItem(false);
+    }
+  };
+
+  const handleDeletePosition = async (name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar el cargo "${name}"? Todos los trabajadores con este cargo serán reasignados a "Sin Cargo".`)) return;
+    
+    setUpdatingItem(true);
+    try {
+      // Update database
+      const { error } = await supabase
+        .from('workers')
+        .update({ position: 'Sin Cargo' })
+        .eq('position', name);
+        
+      if (error) throw error;
+      
+      // Remove from custom list
+      setCustomCargos(prev => prev.filter(c => c !== name));
+      
+      toast.success(`Cargo "${name}" eliminado exitosamente`);
+      fetchWorkers();
+    } catch (e: any) {
+      toast.error('Error al eliminar cargo: ' + e.message);
+    } finally {
+      setUpdatingItem(false);
+    }
+  };
+
   useEffect(() => {
     fetchWorkers();
   }, [supabase]);
 
   const uniqueAreas = useMemo(() => {
-    const areas = new Set(workers.map(w => w.area).filter(Boolean));
-    return Array.from(areas).sort();
-  }, [workers]);
+    const dbAreas = workers.map(w => w.area).filter(Boolean);
+    const allAreas = new Set([...dbAreas, ...customAreas]);
+    return Array.from(allAreas).sort();
+  }, [workers, customAreas]);
 
   const uniquePositions = useMemo(() => {
-    const positions = new Set(workers.map(w => w.position).filter(Boolean));
-    return Array.from(positions).sort();
-  }, [workers]);
+    const dbPositions = workers.map(w => w.position).filter(Boolean);
+    const allPositions = new Set([...dbPositions, ...customCargos]);
+    return Array.from(allPositions).sort();
+  }, [workers, customCargos]);
 
   const filteredWorkers = useMemo(() => {
     let result = workers.filter(w => {
@@ -980,6 +1066,7 @@ export default function TrabajadoresPage() {
                   setManageTab('areas');
                   setEditingItemName(null);
                   setNewItemValue('');
+                  setCreateItemName('');
                 }}
               >
                 Áreas ({uniqueAreas.length})
@@ -994,6 +1081,7 @@ export default function TrabajadoresPage() {
                   setManageTab('positions');
                   setEditingItemName(null);
                   setNewItemValue('');
+                  setCreateItemName('');
                 }}
               >
                 Cargos ({uniquePositions.length})
@@ -1002,15 +1090,32 @@ export default function TrabajadoresPage() {
 
             {manageTab === 'areas' ? (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Renombra un área para actualizarla automáticamente en todos los trabajadores asociados.
+                {/* Create Area Input */}
+                <div className="flex gap-2 items-end mb-2">
+                  <div className="space-y-1.5 flex-1">
+                    <Label className="text-xs font-semibold">Nueva Área</Label>
+                    <Input
+                      placeholder="Ej. Administración"
+                      className="h-9"
+                      value={createItemName}
+                      onChange={(e) => setCreateItemName(e.target.value)}
+                    />
+                  </div>
+                  <Button className="h-9" onClick={() => handleAddCustomArea(createItemName)}>
+                    <Plus className="w-4 h-4 mr-1.5" /> Agregar
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-1">
+                  Renombra o elimina áreas. Al eliminar un área, todos los trabajadores asociados se reasignarán a "Sin Área".
                 </p>
-                <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-background/50">
+                
+                <div className="border rounded-lg overflow-hidden max-h-[260px] overflow-y-auto bg-background/50">
                   <Table>
                     <TableHeader className="bg-muted/40 sticky top-0">
                       <TableRow>
                         <TableHead>Nombre del Área</TableHead>
-                        <TableHead className="w-[100px] text-right">Acción</TableHead>
+                        <TableHead className="w-[100px] text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1062,17 +1167,28 @@ export default function TrabajadoresPage() {
                                   </Button>
                                 </div>
                               ) : (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-primary"
-                                  onClick={() => {
-                                    setEditingItemName(area);
-                                    setNewItemValue(area);
-                                  }}
-                                >
-                                  <FileEdit className="w-3.5 h-3.5" />
-                                </Button>
+                                <div className="flex justify-end gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-primary"
+                                    onClick={() => {
+                                      setEditingItemName(area);
+                                      setNewItemValue(area);
+                                    }}
+                                  >
+                                    <FileEdit className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDeleteArea(area)}
+                                    disabled={updatingItem}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>
@@ -1084,15 +1200,32 @@ export default function TrabajadoresPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Renombra un cargo para actualizarlo automáticamente en todos los trabajadores asociados.
+                {/* Create Cargo Input */}
+                <div className="flex gap-2 items-end mb-2">
+                  <div className="space-y-1.5 flex-1">
+                    <Label className="text-xs font-semibold">Nuevo Cargo</Label>
+                    <Input
+                      placeholder="Ej. Asistente"
+                      className="h-9"
+                      value={createItemName}
+                      onChange={(e) => setCreateItemName(e.target.value)}
+                    />
+                  </div>
+                  <Button className="h-9" onClick={() => handleAddCustomCargo(createItemName)}>
+                    <Plus className="w-4 h-4 mr-1.5" /> Agregar
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-1">
+                  Renombra o elimina cargos. Al eliminar un cargo, todos los trabajadores asociados se reasignarán a "Sin Cargo".
                 </p>
-                <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-background/50">
+                
+                <div className="border rounded-lg overflow-hidden max-h-[260px] overflow-y-auto bg-background/50">
                   <Table>
                     <TableHeader className="bg-muted/40 sticky top-0">
                       <TableRow>
                         <TableHead>Nombre del Cargo</TableHead>
-                        <TableHead className="w-[100px] text-right">Acción</TableHead>
+                        <TableHead className="w-[100px] text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1144,17 +1277,28 @@ export default function TrabajadoresPage() {
                                   </Button>
                                 </div>
                               ) : (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-primary"
-                                  onClick={() => {
-                                    setEditingItemName(pos);
-                                    setNewItemValue(pos);
-                                  }}
-                                >
-                                  <FileEdit className="w-3.5 h-3.5" />
-                                </Button>
+                                <div className="flex justify-end gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-primary"
+                                    onClick={() => {
+                                      setEditingItemName(pos);
+                                      setNewItemValue(pos);
+                                    }}
+                                  >
+                                    <FileEdit className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDeletePosition(pos)}
+                                    disabled={updatingItem}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
                               )}
                             </TableCell>
                           </TableRow>
