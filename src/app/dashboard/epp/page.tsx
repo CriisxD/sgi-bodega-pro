@@ -40,6 +40,7 @@ export default function EppPage() {
   const [sortBy, setSortBy] = usePersistentState<'name_asc' | 'name_desc' | 'rut'>('epp-sortBy', 'name_asc');
   const [areaFilter, setAreaFilter] = usePersistentState<string>('epp-areaFilter', 'all');
   const [positionFilter, setPositionFilter] = usePersistentState<string>('epp-positionFilter', 'all');
+  const [recordFilter, setRecordFilter] = useState<'all' | 'this_month' | 'last_30_days'>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -112,6 +113,25 @@ export default function EppPage() {
     
     return result;
   }, [workers, search, areaFilter, positionFilter, sortBy]);
+
+  const filteredRecords = useMemo(() => {
+    if (!records) return [];
+    const now = new Date();
+    
+    return records.filter(record => {
+      const recordDate = new Date(record.delivered_at);
+      if (recordFilter === 'all') return true;
+      if (recordFilter === 'this_month') {
+        return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear();
+      }
+      if (recordFilter === 'last_30_days') {
+        const diffTime = Math.abs(now.getTime() - recordDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        return diffDays <= 30;
+      }
+      return true;
+    });
+  }, [records, recordFilter]);
 
   const printRecord = () => {
     window.print();
@@ -291,7 +311,7 @@ export default function EppPage() {
 
       <Dialog open={!!selectedWorker} onOpenChange={() => setSelectedWorker(null)}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
-          <DialogHeader className="flex flex-row items-start justify-between print:hidden">
+          <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
             <div>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <FileText className="w-5 h-5 text-chart-4" /> 
@@ -299,10 +319,22 @@ export default function EppPage() {
               </DialogTitle>
               <p className="text-sm text-muted-foreground mt-1">RUT: {selectedWorker?.rut} — {selectedWorker?.position} ({selectedWorker?.area})</p>
             </div>
-            <Button variant="outline" size="sm" onClick={printRecord} className="hidden sm:flex">
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir Ficha
-            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Select value={recordFilter} onValueChange={(v: any) => setRecordFilter(v)}>
+                <SelectTrigger className="w-full sm:w-[180px] h-9">
+                  <SelectValue placeholder="Periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Histórico Completo</SelectItem>
+                  <SelectItem value="this_month">Mes Actual</SelectItem>
+                  <SelectItem value="last_30_days">Últimos 30 días</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={printRecord} className="h-9">
+                <Printer className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Imprimir Ficha</span>
+              </Button>
+            </div>
           </DialogHeader>
 
           {/* Printable Area / Document Preview */}
@@ -346,6 +378,10 @@ export default function EppPage() {
                 <div className="text-center py-10 text-gray-500 italic">
                   El trabajador aún no tiene entregas de EPP registradas en el sistema.
                 </div>
+              ) : filteredRecords.length === 0 ? (
+                <div className="text-center py-10 text-gray-500 italic">
+                  No hay entregas de EPP en el periodo seleccionado.
+                </div>
               ) : (
                 <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full text-sm border-collapse mb-10">
@@ -358,7 +394,7 @@ export default function EppPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {records.map((record: any) => (
+                    {filteredRecords.map((record: any) => (
                       <tr key={record.id} className="border-b border-gray-300">
                         <td className="py-4 px-2 whitespace-nowrap">
                           {format(new Date(record.delivered_at), "dd/MM/yyyy")}
