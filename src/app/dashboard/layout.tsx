@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,6 +46,16 @@ export default function DashboardLayout({
         />
       </div>
 
+      {/* Mobile Drawer Sidebar */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-64 bg-sidebar border-r border-sidebar-border">
+          <Sidebar
+            collapsed={false}
+            onToggle={() => setIsMobileMenuOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+
       {/* Main content */}
       <main
         className={cn(
@@ -51,7 +63,7 @@ export default function DashboardLayout({
           sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'
         )}
       >
-        <Header onMenuToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+        <Header onMenuToggle={() => setIsMobileMenuOpen(true)} />
         <div className="p-4 md:p-6">{children}</div>
       </main>
 

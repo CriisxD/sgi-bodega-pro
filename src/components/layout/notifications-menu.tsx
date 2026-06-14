@@ -112,9 +112,9 @@ export function NotificationsMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="relative inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-        <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />
+        <Bell className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors pointer-events-none" />
         {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground animate-in zoom-in">
+          <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] bg-destructive text-destructive-foreground animate-in zoom-in pointer-events-none">
             {unreadCount > 9 ? '9+' : unreadCount}
           </Badge>
         )}
