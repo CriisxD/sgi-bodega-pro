@@ -35,8 +35,6 @@ interface CartItem {
 const valeTypeOptions: { value: ValeType; label: string; description: string; icon: any; roles: string[] }[] = [
   { value: 'material', label: 'Material / Herramientas', description: 'Tornillos, pintura, herramientas de uso, etc.', icon: Wrench, roles: ['admin', 'supervisor', 'bodeguero'] },
   { value: 'epp', label: 'EPP', description: 'Elementos de Protección Personal (Requiere firma)', icon: HardHat, roles: ['admin', 'prevencionista', 'bodeguero'] },
-  { value: 'cargo_personal', label: 'Cargo Personal', description: 'Herramientas a cargo (Devolución obligatoria)', icon: Wrench, roles: ['admin', 'supervisor', 'bodeguero'] },
-  { value: 'uso_diario', label: 'Uso Diario', description: 'Préstamo por turno (Devolver al final del día)', icon: Wrench, roles: ['admin', 'supervisor', 'bodeguero'] },
 ];
 
 export default function NuevoValePage() {
@@ -492,7 +490,7 @@ export default function NuevoValePage() {
                       {selectedWorkers.length} {selectedWorkers.length === 1 ? 'persona seleccionada' : 'personas seleccionadas'}
                     </span>
                   </div>
-                  <Badge variant="outline">{valeType === 'epp' ? 'EPP' : valeType === 'cargo_personal' ? 'Cargo Personal' : valeType === 'uso_diario' ? 'Uso Diario' : 'Material'}</Badge>
+                  <Badge variant="outline">{valeType === 'epp' ? 'EPP' : 'Material'}</Badge>
                 </div>
               </div>
 

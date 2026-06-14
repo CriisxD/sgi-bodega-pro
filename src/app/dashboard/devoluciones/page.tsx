@@ -45,6 +45,16 @@ export default function DevolucionesPage() {
   const [selectedTool, setSelectedTool] = useState('');
   const [assignType, setAssignType] = useState<'uso_diario' | 'cargo_personal'>('uso_diario');
   const [assigning, setAssigning] = useState(false);
+  const [assignStep, setAssignStep] = useState(1);
+
+  const handleOpenNewModal = (open: boolean) => {
+    setIsNewModalOpen(open);
+    if (open) {
+      setAssignStep(1);
+      setSelectedWorker('');
+      setSelectedTool('');
+    }
+  };
 
   const fetchAssignments = async () => {
     const { data } = await supabase
@@ -233,115 +243,151 @@ export default function DevolucionesPage() {
             />
           </div>
 
-          <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+          <Dialog open={isNewModalOpen} onOpenChange={handleOpenNewModal}>
             <DialogTrigger render={
               <Button className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Prestar Herramienta
               </Button>
             } />
-            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogContent className="max-w-xl max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Wrench className="w-5 h-5 text-primary" />
                   Nueva Asignación Directa
                 </DialogTitle>
+                <div className="flex justify-between text-xs font-medium text-muted-foreground mt-2 px-1">
+                  <span>Paso {assignStep} de 3</span>
+                  <span>{assignStep === 1 ? 'Tipo' : assignStep === 2 ? 'Trabajador' : 'Herramienta'}</span>
+                </div>
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-1">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300 ease-out"
+                    style={{ width: `${((assignStep - 1) / 2) * 100}%` }}
+                  />
+                </div>
               </DialogHeader>
               
-              <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-4">
-                {/* Tipo de asignación */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={() => setAssignType('uso_diario')}
-                    className={`flex-1 p-3 rounded-lg border text-center transition-all ${
-                      assignType === 'uso_diario' ? 'border-primary bg-primary/5 ring-1 ring-primary/30' : 'border-border/50 hover:border-border bg-card/50'
-                    }`}
-                  >
-                    <p className="font-medium text-sm">Uso Diario</p>
-                    <p className="text-xs text-muted-foreground mt-1">Devolución hoy mismo</p>
-                  </button>
-                  <button
-                    onClick={() => setAssignType('cargo_personal')}
-                    className={`flex-1 p-3 rounded-lg border text-center transition-all ${
-                      assignType === 'cargo_personal' ? 'border-chart-3 bg-chart-3/5 ring-1 ring-chart-3/30' : 'border-border/50 hover:border-border bg-card/50'
-                    }`}
-                  >
-                    <p className="font-medium text-sm">Cargo Personal</p>
-                    <p className="text-xs text-muted-foreground mt-1">Asignación indefinida</p>
-                  </button>
-                </div>
-
-                {/* Worker selection */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm">Seleccionar Trabajador</h3>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar trabajador..."
-                      className="pl-9"
-                      value={workerSearch}
-                      onChange={(e) => setWorkerSearch(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2 max-h-40 overflow-y-auto">
-                    {filteredWorkers.map((worker) => (
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 py-2 min-h-[300px]">
+                {assignStep === 1 && (
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-center mb-4">¿Qué tipo de asignación necesitas?</h3>
+                    <div className="flex flex-col gap-3">
                       <button
-                        key={worker.id}
-                        onClick={() => setSelectedWorker(worker.id)}
-                        className={`flex items-center justify-between p-2 rounded-lg border text-left transition-all ${
-                          selectedWorker === worker.id ? 'border-primary bg-primary/5' : 'border-border/50 bg-card/50'
+                        onClick={() => setAssignType('uso_diario')}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          assignType === 'uso_diario' ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border/50 hover:border-primary/50 bg-card/50'
                         }`}
                       >
-                        <div>
-                          <p className="text-sm font-medium">{worker.name}</p>
-                          <p className="text-xs text-muted-foreground">{worker.rut} · {worker.area}</p>
-                        </div>
-                        {selectedWorker === worker.id && <CheckCircle className="w-4 h-4 text-primary" />}
+                        <p className="font-bold text-lg">Uso Diario</p>
+                        <p className="text-sm text-muted-foreground mt-1">Devolución obligatoria al finalizar el turno hoy mismo.</p>
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tool selection */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-sm">Seleccionar Herramienta</h3>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar herramienta..."
-                      className="pl-9"
-                      value={toolSearch}
-                      onChange={(e) => setToolSearch(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2 max-h-40 overflow-y-auto">
-                    {filteredTools.map((tool) => (
                       <button
-                        key={tool.id}
-                        onClick={() => tool.stock > 0 && setSelectedTool(tool.id)}
-                        disabled={tool.stock <= 0}
-                        className={`flex items-center justify-between p-2 rounded-lg border text-left transition-all ${
-                          tool.stock <= 0 ? 'opacity-50 cursor-not-allowed bg-muted' : 
-                          selectedTool === tool.id ? 'border-primary bg-primary/5' : 'border-border/50 bg-card/50'
+                        onClick={() => setAssignType('cargo_personal')}
+                        className={`p-4 rounded-xl border text-left transition-all ${
+                          assignType === 'cargo_personal' ? 'border-chart-3 bg-chart-3/5 ring-2 ring-chart-3/20' : 'border-border/50 hover:border-primary/50 bg-card/50'
                         }`}
                       >
-                        <div>
-                          <p className="text-sm font-medium">{tool.name}</p>
-                          <p className="text-xs text-muted-foreground">Stock actual: {tool.stock} un</p>
-                        </div>
-                        {selectedTool === tool.id && <CheckCircle className="w-4 h-4 text-primary" />}
+                        <p className="font-bold text-lg">Cargo Personal</p>
+                        <p className="text-sm text-muted-foreground mt-1">Asignación indefinida de herramientas bajo responsabilidad del trabajador.</p>
                       </button>
-                    ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {assignStep === 2 && (
+                  <div className="space-y-4 h-full flex flex-col">
+                    <h3 className="font-medium text-center">¿A quién se le prestará?</h3>
+                    <div className="relative shrink-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por nombre o RUT..."
+                        className="pl-10 h-12 text-base rounded-xl"
+                        value={workerSearch}
+                        onChange={(e) => setWorkerSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="grid gap-2 flex-1 overflow-y-auto">
+                      {filteredWorkers.map((worker) => (
+                        <button
+                          key={worker.id}
+                          onClick={() => setSelectedWorker(worker.id)}
+                          className={`flex items-center justify-between p-3 rounded-lg border text-left transition-all ${
+                            selectedWorker === worker.id ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-border/50 bg-card/50 hover:border-primary/50'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-semibold">{worker.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5"><span className="font-mono">{worker.rut}</span> · {worker.area}</p>
+                          </div>
+                          {selectedWorker === worker.id && <CheckCircle className="w-5 h-5 text-primary" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {assignStep === 3 && (
+                  <div className="space-y-4 h-full flex flex-col">
+                    <h3 className="font-medium text-center">¿Qué herramienta requiere?</h3>
+                    <div className="relative shrink-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar herramienta en bodega..."
+                        className="pl-10 h-12 text-base rounded-xl"
+                        value={toolSearch}
+                        onChange={(e) => setToolSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="grid gap-2 flex-1 overflow-y-auto">
+                      {filteredTools.map((tool) => (
+                        <button
+                          key={tool.id}
+                          onClick={() => tool.stock > 0 && setSelectedTool(tool.id)}
+                          disabled={tool.stock <= 0}
+                          className={`flex items-center justify-between p-3 rounded-lg border text-left transition-all ${
+                            tool.stock <= 0 ? 'opacity-50 cursor-not-allowed bg-muted' : 
+                            selectedTool === tool.id ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-border/50 bg-card/50 hover:border-primary/50'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-semibold">{tool.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Stock actual: {tool.stock} unidades</p>
+                          </div>
+                          {selectedTool === tool.id && <CheckCircle className="w-5 h-5 text-primary" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <DialogFooter className="pt-4 border-t mt-auto">
-                <Button variant="outline" onClick={() => setIsNewModalOpen(false)}>Cancelar</Button>
-                <Button onClick={handleAssign} disabled={assigning || !selectedWorker || !selectedTool}>
-                  {assigning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wrench className="w-4 h-4 mr-2" />}
-                  Asignar Herramienta
-                </Button>
+              <DialogFooter className="pt-4 border-t mt-auto flex sm:justify-between flex-row">
+                {assignStep > 1 ? (
+                  <Button variant="ghost" onClick={() => setAssignStep(assignStep - 1)}>
+                    Atrás
+                  </Button>
+                ) : (
+                  <Button variant="ghost" onClick={() => handleOpenNewModal(false)}>
+                    Cancelar
+                  </Button>
+                )}
+                
+                {assignStep < 3 ? (
+                  <Button 
+                    onClick={() => setAssignStep(assignStep + 1)} 
+                    disabled={(assignStep === 2 && !selectedWorker)}
+                  >
+                    Siguiente
+                  </Button>
+                ) : (
+                  <Button onClick={handleAssign} disabled={assigning || !selectedTool}>
+                    {assigning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wrench className="w-4 h-4 mr-2" />}
+                    Asignar Herramienta
+                  </Button>
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>
