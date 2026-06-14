@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/supabase/auth-context';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,6 +34,7 @@ import { toast } from 'sonner';
 
 export default function ProductosPage() {
   const supabase = createClient();
+  const { profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
@@ -263,6 +265,9 @@ export default function ProductosPage() {
     setSaving(true);
     try {
       if (editingProduct) {
+        // Find stock difference
+        const stockDiff = formStock - editingProduct.stock;
+
         // Update
         const { error } = await supabase
           .from('products')
@@ -270,11 +275,24 @@ export default function ProductosPage() {
             name: formName.trim(),
             brand: formBrand.trim() || null,
             category_id: formCategoryId,
+            stock: formStock,
             min_stock: formMinStock,
             unit: formUnit,
           })
           .eq('id', editingProduct.id);
         if (error) throw error;
+
+        // If stock changed, log movement
+        if (stockDiff !== 0) {
+           await supabase.from('stock_movements').insert({
+              product_id: editingProduct.id,
+              type: stockDiff > 0 ? 'entrada' : 'salida',
+              quantity: Math.abs(stockDiff),
+              reference_type: 'adjustment',
+              notes: 'Ajuste manual desde mantenedor de productos',
+              created_by: profile?.id
+           });
+        }
         toast.success('Producto actualizado exitosamente');
       } else {
         // Insert
@@ -715,17 +733,15 @@ export default function ProductosPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              {!editingProduct && (
-                <div className="space-y-2">
-                  <Label>Stock Inicial</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formStock}
-                    onChange={(e) => setFormStock(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>{editingProduct ? 'Ajustar Stock' : 'Stock Inicial'}</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={formStock}
+                  onChange={(e) => setFormStock(parseInt(e.target.value) || 0)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Stock Mínimo</Label>
                 <Input

@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -29,6 +29,7 @@ interface NotificationItem {
 }
 
 export function NotificationsMenu() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const { profile } = useAuth();
   const supabase = createClient();
@@ -147,8 +148,8 @@ export function NotificationsMenu() {
               return (
                 <DropdownMenuItem 
                   key={notif.id} 
-                  render={<Link href={notif.link} />}
                   className="flex items-start gap-3 p-4 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer w-full text-foreground hover:text-foreground hover:bg-muted focus:bg-muted focus:text-foreground"
+                  onClick={() => router.push(notif.link)}
                 >
                   <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                     notif.type === 'vale_pendiente' ? 'bg-blue-500/10 text-blue-500' : 'bg-destructive/10 text-destructive'
