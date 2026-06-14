@@ -136,26 +136,34 @@ export function NotificationsMenu() {
               <p className="text-sm">No tienes notificaciones pendientes</p>
             </div>
           ) : (
-            notifications.map((notif) => (
-              <DropdownMenuItem key={notif.id} className="p-0 cursor-pointer">
-                <Link href={notif.link} className="flex items-start gap-3 p-4 border-b last:border-0 hover:bg-muted/50 transition-colors">
+            notifications.map((notif) => {
+              const timeText = notif.time instanceof Date && !isNaN(notif.time.getTime())
+                ? formatDistanceToNow(notif.time, { locale: es })
+                : '';
+
+              return (
+                <DropdownMenuItem 
+                  key={notif.id} 
+                  render={<Link href={notif.link} />}
+                  className="flex items-start gap-3 p-4 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer w-full text-foreground hover:text-foreground hover:bg-muted focus:bg-muted focus:text-foreground"
+                >
                   <div className={`mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                     notif.type === 'vale_pendiente' ? 'bg-blue-500/10 text-blue-500' : 'bg-destructive/10 text-destructive'
                   }`}>
                     {notif.type === 'vale_pendiente' ? <FileText className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-left">
                     <p className="text-sm font-semibold leading-none">{notif.title}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">{notif.description}</p>
-                    {notif.type === 'vale_pendiente' && (
+                    {notif.type === 'vale_pendiente' && timeText && (
                       <p className="text-[10px] text-muted-foreground pt-1">
-                        Hace {formatDistanceToNow(notif.time, { locale: es })}
+                        Hace {timeText}
                       </p>
                     )}
                   </div>
-                </Link>
-              </DropdownMenuItem>
-            ))
+                </DropdownMenuItem>
+              );
+            })
           )}
         </div>
       </DropdownMenuContent>
