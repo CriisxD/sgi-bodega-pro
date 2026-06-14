@@ -1090,8 +1090,24 @@ export default function TrabajadoresPage() {
 
             {manageTab === 'areas' ? (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground mb-3">
-                  Renombra las áreas existentes. Los cambios se reflejarán en todos los trabajadores asociados.
+                {/* Create Area Input */}
+                <div className="flex gap-2 items-end mb-2">
+                  <div className="space-y-1.5 flex-1">
+                    <Label className="text-xs font-semibold">Nueva Área</Label>
+                    <Input
+                      placeholder="Ej. Administración"
+                      className="h-9"
+                      value={createItemName}
+                      onChange={(e) => setCreateItemName(e.target.value)}
+                    />
+                  </div>
+                  <Button className="h-9" onClick={() => handleAddCustomArea(createItemName)}>
+                    <Plus className="w-4 h-4 mr-1.5" /> Agregar
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-1">
+                  Renombra o elimina áreas. Al eliminar un área, todos los trabajadores asociados se reasignarán a "Sin Área".
                 </p>
                 
                 <div className="border rounded-lg overflow-hidden max-h-[260px] overflow-y-auto bg-background/50">
@@ -1163,6 +1179,15 @@ export default function TrabajadoresPage() {
                                   >
                                     <FileEdit className="w-3.5 h-3.5" />
                                   </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDeleteArea(area)}
+                                    disabled={updatingItem}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
                                 </div>
                               )}
                             </TableCell>
@@ -1175,8 +1200,24 @@ export default function TrabajadoresPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground mb-3">
-                  Renombra los cargos existentes. Los cambios se reflejarán en todos los trabajadores asociados.
+                {/* Create Cargo Input */}
+                <div className="flex gap-2 items-end mb-2">
+                  <div className="space-y-1.5 flex-1">
+                    <Label className="text-xs font-semibold">Nuevo Cargo</Label>
+                    <Input
+                      placeholder="Ej. Asistente"
+                      className="h-9"
+                      value={createItemName}
+                      onChange={(e) => setCreateItemName(e.target.value)}
+                    />
+                  </div>
+                  <Button className="h-9" onClick={() => handleAddCustomCargo(createItemName)}>
+                    <Plus className="w-4 h-4 mr-1.5" /> Agregar
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-1">
+                  Renombra o elimina cargos. Al eliminar un cargo, todos los trabajadores asociados se reasignarán a "Sin Cargo".
                 </p>
                 
                 <div className="border rounded-lg overflow-hidden max-h-[260px] overflow-y-auto bg-background/50">
@@ -1247,6 +1288,15 @@ export default function TrabajadoresPage() {
                                     }}
                                   >
                                     <FileEdit className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDeletePosition(pos)}
+                                    disabled={updatingItem}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </Button>
                                 </div>
                               )}
