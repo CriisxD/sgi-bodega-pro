@@ -51,7 +51,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-2">
         <NotificationsMenu />
       </div>
     </header>
