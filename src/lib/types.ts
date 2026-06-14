@@ -116,6 +116,8 @@ export interface ToolAssignment {
   returned_at: string | null;
   status: ToolAssignmentStatus;
   condition_notes: string | null;
+  quantity: number;
+  signature: string | null;
   // Joined
   worker?: Worker;
   product?: Product;
