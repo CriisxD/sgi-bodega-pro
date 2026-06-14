@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Papa from 'papaparse';
 import { usePersistentState } from '@/hooks/use-persistent-state';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -67,6 +68,7 @@ function cleanAndFormatRut(rut: string): string {
 
 export default function TrabajadoresPage() {
   const supabase = createClient();
+  const { profile } = useAuth();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,13 @@ export default function TrabajadoresPage() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Manage Areas/Cargos Modal states
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [manageTab, setManageTab] = useState<'areas' | 'positions'>('areas');
+  const [editingItemName, setEditingItemName] = useState<string | null>(null);
+  const [newItemValue, setNewItemValue] = useState('');
+  const [updatingItem, setUpdatingItem] = useState(false);
+
   const fetchWorkers = async () => {
     const { data } = await supabase
       .from('workers')
@@ -101,6 +110,60 @@ export default function TrabajadoresPage() {
     
     setWorkers(data as Worker[] || []);
     setLoading(false);
+  };
+
+  const handleRenameArea = async (oldName: string, newName: string) => {
+    if (!newName.trim()) return toast.error('El nombre no puede estar vacío');
+    if (oldName === newName.trim()) {
+      setEditingItemName(null);
+      return;
+    }
+    
+    setUpdatingItem(true);
+    try {
+      const { error } = await supabase
+        .from('workers')
+        .update({ area: newName.trim() })
+        .eq('area', oldName);
+        
+      if (error) throw error;
+      
+      toast.success(`Área renombrada de "${oldName}" a "${newName.trim()}"`);
+      setEditingItemName(null);
+      setNewItemValue('');
+      fetchWorkers();
+    } catch (e: any) {
+      toast.error('Error al renombrar área: ' + e.message);
+    } finally {
+      setUpdatingItem(false);
+    }
+  };
+
+  const handleRenamePosition = async (oldName: string, newName: string) => {
+    if (!newName.trim()) return toast.error('El nombre no puede estar vacío');
+    if (oldName === newName.trim()) {
+      setEditingItemName(null);
+      return;
+    }
+    
+    setUpdatingItem(true);
+    try {
+      const { error } = await supabase
+        .from('workers')
+        .update({ position: newName.trim() })
+        .eq('position', oldName);
+        
+      if (error) throw error;
+      
+      toast.success(`Cargo renombrado de "${oldName}" a "${newName.trim()}"`);
+      setEditingItemName(null);
+      setNewItemValue('');
+      fetchWorkers();
+    } catch (e: any) {
+      toast.error('Error al renombrar cargo: ' + e.message);
+    } finally {
+      setUpdatingItem(false);
+    }
   };
 
   useEffect(() => {
@@ -504,6 +567,12 @@ export default function TrabajadoresPage() {
             <Download className="w-4 h-4 mr-2" />
             Exportar CSV
           </Button>
+          {(profile?.role === 'admin' || profile?.role === 'bodeguero') && (
+            <Button variant="outline" size="sm" onClick={() => setIsManageModalOpen(true)}>
+              <SlidersHorizontal className="w-4 h-4 mr-2 text-primary" />
+              Gestionar Áreas/Cargos
+            </Button>
+          )}
           <Button size="sm" onClick={openNewModal}>
             <UserPlus className="w-4 h-4 mr-2" />
             Nuevo Trabajador
@@ -856,18 +925,26 @@ export default function TrabajadoresPage() {
               <div className="space-y-2">
                 <Label>Área <span className="text-destructive">*</span></Label>
                 <Input
+                  list="worker-areas"
                   placeholder="Ej. Producción, Mantención..."
                   value={formArea}
                   onChange={(e) => setFormArea(e.target.value)}
                 />
+                <datalist id="worker-areas">
+                  {uniqueAreas.map(a => <option key={a} value={a} />)}
+                </datalist>
               </div>
               <div className="space-y-2">
                 <Label>Cargo <span className="text-destructive">*</span></Label>
                 <Input
+                  list="worker-positions"
                   placeholder="Ej. Operador, Técnico..."
                   value={formPosition}
                   onChange={(e) => setFormPosition(e.target.value)}
                 />
+                <datalist id="worker-positions">
+                  {uniquePositions.map(p => <option key={p} value={p} />)}
+                </datalist>
               </div>
             </div>
           </div>
@@ -879,6 +956,216 @@ export default function TrabajadoresPage() {
               {editingWorker ? 'Guardar Cambios' : 'Crear Trabajador'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Areas and Positions Modal */}
+      <Dialog open={isManageModalOpen} onOpenChange={setIsManageModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-primary" /> Gestionar Áreas y Cargos
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="flex border-b border-border/50">
+              <button
+                className={`flex-1 pb-2 text-sm font-semibold border-b-2 transition-colors ${
+                  manageTab === 'areas' 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => {
+                  setManageTab('areas');
+                  setEditingItemName(null);
+                  setNewItemValue('');
+                }}
+              >
+                Áreas ({uniqueAreas.length})
+              </button>
+              <button
+                className={`flex-1 pb-2 text-sm font-semibold border-b-2 transition-colors ${
+                  manageTab === 'positions' 
+                    ? 'border-primary text-primary' 
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => {
+                  setManageTab('positions');
+                  setEditingItemName(null);
+                  setNewItemValue('');
+                }}
+              >
+                Cargos ({uniquePositions.length})
+              </button>
+            </div>
+
+            {manageTab === 'areas' ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Renombra un área para actualizarla automáticamente en todos los trabajadores asociados.
+                </p>
+                <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-background/50">
+                  <Table>
+                    <TableHeader className="bg-muted/40 sticky top-0">
+                      <TableRow>
+                        <TableHead>Nombre del Área</TableHead>
+                        <TableHead className="w-[100px] text-right">Acción</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {uniqueAreas.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} className="text-center text-muted-foreground py-6">
+                            No hay áreas registradas
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        uniqueAreas.map(area => (
+                          <TableRow key={area} className="hover:bg-muted/10">
+                            <TableCell className="font-medium">
+                              {editingItemName === area ? (
+                                <Input
+                                  size={20}
+                                  className="h-8 py-1 bg-background"
+                                  value={newItemValue}
+                                  onChange={(e) => setNewItemValue(e.target.value)}
+                                  placeholder="Nuevo nombre..."
+                                  autoFocus
+                                />
+                              ) : (
+                                <span>{area}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {editingItemName === area ? (
+                                <div className="flex justify-end gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    className="h-7 px-2" 
+                                    onClick={() => handleRenameArea(area, newItemValue)}
+                                    disabled={updatingItem}
+                                  >
+                                    {updatingItem ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-7 px-2"
+                                    onClick={() => {
+                                      setEditingItemName(null);
+                                      setNewItemValue('');
+                                    }}
+                                    disabled={updatingItem}
+                                  >
+                                    X
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-primary"
+                                  onClick={() => {
+                                    setEditingItemName(area);
+                                    setNewItemValue(area);
+                                  }}
+                                >
+                                  <FileEdit className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Renombra un cargo para actualizarlo automáticamente en todos los trabajadores asociados.
+                </p>
+                <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-background/50">
+                  <Table>
+                    <TableHeader className="bg-muted/40 sticky top-0">
+                      <TableRow>
+                        <TableHead>Nombre del Cargo</TableHead>
+                        <TableHead className="w-[100px] text-right">Acción</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {uniquePositions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} className="text-center text-muted-foreground py-6">
+                            No hay cargos registrados
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        uniquePositions.map(pos => (
+                          <TableRow key={pos} className="hover:bg-muted/10">
+                            <TableCell className="font-medium">
+                              {editingItemName === pos ? (
+                                <Input
+                                  size={20}
+                                  className="h-8 py-1 bg-background"
+                                  value={newItemValue}
+                                  onChange={(e) => setNewItemValue(e.target.value)}
+                                  placeholder="Nuevo nombre..."
+                                  autoFocus
+                                />
+                              ) : (
+                                <span>{pos}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {editingItemName === pos ? (
+                                <div className="flex justify-end gap-1">
+                                  <Button 
+                                    size="sm" 
+                                    className="h-7 px-2" 
+                                    onClick={() => handleRenamePosition(pos, newItemValue)}
+                                    disabled={updatingItem}
+                                  >
+                                    {updatingItem ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="h-7 px-2"
+                                    onClick={() => {
+                                      setEditingItemName(null);
+                                      setNewItemValue('');
+                                    }}
+                                    disabled={updatingItem}
+                                  >
+                                    X
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-primary"
+                                  onClick={() => {
+                                    setEditingItemName(pos);
+                                    setNewItemValue(pos);
+                                  }}
+                                >
+                                  <FileEdit className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
