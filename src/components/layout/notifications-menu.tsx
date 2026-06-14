@@ -13,6 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -120,14 +121,16 @@ export function NotificationsMenu() {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0 border-border/50 shadow-xl">
-        <DropdownMenuLabel className="p-4 bg-muted/30 border-b">
-          <div className="flex items-center justify-between">
-            <span className="font-bold">Notificaciones</span>
-            <Badge variant="secondary" className="text-xs">
-              {unreadCount} nuevas
-            </Badge>
-          </div>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="p-4 bg-muted/30 border-b">
+            <div className="flex items-center justify-between">
+              <span className="font-bold">Notificaciones</span>
+              <Badge variant="secondary" className="text-xs">
+                {unreadCount} nuevas
+              </Badge>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         
         <div className="max-h-[300px] overflow-y-auto">
           {notifications.length === 0 ? (
