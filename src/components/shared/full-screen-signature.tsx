@@ -46,20 +46,12 @@ export function FullScreenSignatureModal({
     if (!canvas) return;
 
     const resizeCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
+      const width = canvas.offsetWidth;
+      const height = canvas.offsetHeight;
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       
-      // If we are rotating the viewport via CSS, the canvas logical width
-      // matches the client height on screen, and logical height matches screen width.
-      if (window.innerHeight > window.innerWidth) {
-        // Portrait -> will rotate 90deg, so landscape width = screen height
-        canvas.width = window.innerHeight * ratio;
-        canvas.height = window.innerWidth * ratio;
-      } else {
-        // Landscape -> normal mapping
-        canvas.width = rect.width * ratio;
-        canvas.height = rect.height * ratio;
-      }
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
 
       const ctx = canvas.getContext('2d');
       if (ctx) {
