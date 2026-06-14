@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Download, FileSpreadsheet, Loader2, Calendar, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   BarChart,
@@ -28,23 +28,31 @@ import {
 export default function ReportesPage() {
   const supabase = createClient();
   const [exporting, setExporting] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
   
   // Data for chart
   const [chartData, setChartData] = useState<any[]>([]);
   const [loadingChart, setLoadingChart] = useState(true);
 
-  // Generar últimos 6 meses para el selector
-  const periods = [
-    { value: 'all', label: 'Todo el histórico' },
-    ...Array.from({ length: 6 }).map((_, i) => {
-      const date = subMonths(new Date(), i);
-      return {
-        value: format(date, 'yyyy-MM'),
-        label: format(date, 'MMMM yyyy', { locale: es }),
-      };
-    }),
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from({ length: currentYear - 2023 + 1 }).map((_, i) => (2023 + i).toString()).reverse();
+  
+  const months = [
+    { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' },
+    { value: '03', label: 'Marzo' }, { value: '04', label: 'Abril' },
+    { value: '05', label: 'Mayo' }, { value: '06', label: 'Junio' },
+    { value: '07', label: 'Julio' }, { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Septiembre' }, { value: '10', label: 'Octubre' },
+    { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' },
   ];
+  
+  const getPeriodLabel = () => {
+    if (selectedYear === 'all') return 'Todo el histórico';
+    if (selectedMonth === 'all') return `Todo el año ${selectedYear}`;
+    const monthLabel = months.find(m => m.value === selectedMonth)?.label;
+    return `${monthLabel} ${selectedYear}`;
+  };
 
   const fetchChartData = async () => {
     setLoadingChart(true);
@@ -57,26 +65,20 @@ export default function ReportesPage() {
           vale:vales(vale_date)
         `);
 
-      if (selectedPeriod !== 'all') {
-        const [year, month] = selectedPeriod.split('-');
-        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
-        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59).toISOString();
-        
-        // Supabase join filtering is tricky, so we fetch all and filter in JS for the MVP, 
-        // or filter by vale_date if we use inner joins.
-        // For simplicity and small data, filter in JS.
-      }
-
       const { data, error } = await query;
       if (error) throw error;
 
       // Ensure valid data and apply date filter in JS
       let validItems = (data as any[] || []).filter(d => d.quantity_delivered > 0 && d.vale);
 
-      if (selectedPeriod !== 'all') {
+      if (selectedYear !== 'all') {
         validItems = validItems.filter(d => {
           const valeDate = d.vale.vale_date;
-          return valeDate && valeDate.startsWith(selectedPeriod);
+          if (!valeDate) return false;
+          if (selectedMonth !== 'all') {
+            return valeDate.startsWith(`${selectedYear}-${selectedMonth}`);
+          }
+          return valeDate.startsWith(selectedYear);
         });
       }
 
@@ -104,7 +106,7 @@ export default function ReportesPage() {
 
   useEffect(() => {
     fetchChartData();
-  }, [selectedPeriod]);
+  }, [selectedYear, selectedMonth]);
 
   const downloadCSV = (data: any[], filename: string) => {
     if (data.length === 0) {
@@ -127,7 +129,11 @@ export default function ReportesPage() {
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${filename}_${selectedPeriod === 'all' ? 'Historico' : selectedPeriod}.csv`;
+    let suffix = 'Historico';
+    if (selectedYear !== 'all') {
+      suffix = selectedMonth === 'all' ? selectedYear : `${selectedYear}-${selectedMonth}`;
+    }
+    link.download = `${filename}_${suffix}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -150,11 +156,16 @@ export default function ReportesPage() {
         `)
         .order('created_at', { ascending: false });
 
-      if (selectedPeriod !== 'all') {
-        const [year, month] = selectedPeriod.split('-');
-        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
-        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59).toISOString();
-        query = query.gte('created_at', startDate).lte('created_at', endDate);
+      if (selectedYear !== 'all') {
+        if (selectedMonth !== 'all') {
+          const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toISOString();
+          const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0, 23, 59, 59).toISOString();
+          query = query.gte('created_at', startDate).lte('created_at', endDate);
+        } else {
+          const startDate = new Date(parseInt(selectedYear), 0, 1).toISOString();
+          const endDate = new Date(parseInt(selectedYear), 11, 31, 23, 59, 59).toISOString();
+          query = query.gte('created_at', startDate).lte('created_at', endDate);
+        }
       }
 
       const { data, error } = await query;
@@ -190,11 +201,16 @@ export default function ReportesPage() {
         `)
         .order('delivered_at', { ascending: false });
 
-      if (selectedPeriod !== 'all') {
-        const [year, month] = selectedPeriod.split('-');
-        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
-        const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59).toISOString();
-        query = query.gte('delivered_at', startDate).lte('delivered_at', endDate);
+      if (selectedYear !== 'all') {
+        if (selectedMonth !== 'all') {
+          const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, 1).toISOString();
+          const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0, 23, 59, 59).toISOString();
+          query = query.gte('delivered_at', startDate).lte('delivered_at', endDate);
+        } else {
+          const startDate = new Date(parseInt(selectedYear), 0, 1).toISOString();
+          const endDate = new Date(parseInt(selectedYear), 11, 31, 23, 59, 59).toISOString();
+          query = query.gte('delivered_at', startDate).lte('delivered_at', endDate);
+        }
       }
 
       const { data, error } = await query;
@@ -240,10 +256,14 @@ export default function ReportesPage() {
 
       let validItems = (data as any[] || []).filter(d => d.quantity_delivered > 0 && d.vale);
 
-      if (selectedPeriod !== 'all') {
+      if (selectedYear !== 'all') {
         validItems = validItems.filter(d => {
           const vale = Array.isArray(d.vale) ? d.vale[0] : d.vale;
-          return vale?.vale_date && vale.vale_date.startsWith(selectedPeriod);
+          if (!vale?.vale_date) return false;
+          if (selectedMonth !== 'all') {
+            return vale.vale_date.startsWith(`${selectedYear}-${selectedMonth}`);
+          }
+          return vale.vale_date.startsWith(selectedYear);
         });
       }
 
@@ -278,23 +298,38 @@ export default function ReportesPage() {
           </p>
         </div>
         
-        {/* Date Filter */}
+        {/* Date Filters */}
         <div className="flex items-center gap-2 bg-card p-2 rounded-lg border border-border/50">
-          <Calendar className="w-4 h-4 text-primary ml-2" />
-          <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v || 'all')}>
-            <SelectTrigger className="w-[200px] border-0 bg-transparent shadow-none focus:ring-0">
-              <SelectValue placeholder="Seleccionar período">
-                {periods.find(p => p.value === selectedPeriod)?.label}
-              </SelectValue>
+          <Calendar className="w-4 h-4 text-primary ml-2 hidden sm:block" />
+          
+          <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v || 'all'); if(v === 'all') setSelectedMonth('all'); }}>
+            <SelectTrigger className="w-[140px] border-0 bg-transparent shadow-none focus:ring-0">
+              <SelectValue placeholder="Año" />
             </SelectTrigger>
             <SelectContent>
-              {periods.map(p => (
-                <SelectItem key={p.value} value={p.value} className="capitalize">
-                  {p.label}
-                </SelectItem>
+              <SelectItem value="all">Todo el Histórico</SelectItem>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          {selectedYear !== 'all' && (
+            <div className="flex items-center">
+              <div className="w-px h-6 bg-border/50 mx-1"></div>
+              <Select value={selectedMonth} onValueChange={(v) => setSelectedMonth(v || 'all')}>
+                <SelectTrigger className="w-[140px] border-0 bg-transparent shadow-none focus:ring-0">
+                  <SelectValue placeholder="Mes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo el Año</SelectItem>
+                  {months.map(m => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -389,9 +424,9 @@ export default function ReportesPage() {
         <CardHeader>
           <CardTitle className="text-lg">Top 5 Ítems Más Consumidos</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {selectedPeriod === 'all' 
+            {selectedYear === 'all' 
               ? 'Consumo histórico total de materiales' 
-              : `Consumo total registrado en ${periods.find(p => p.value === selectedPeriod)?.label}`
+              : `Consumo total registrado en ${getPeriodLabel()}`
             }
           </p>
         </CardHeader>
