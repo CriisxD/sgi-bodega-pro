@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -37,7 +38,8 @@ import {
   Smartphone,
   Wifi,
   PenTool,
-  Pencil
+  Pencil,
+  MessageSquare
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { QRCodeSVG } from 'qrcode.react';
@@ -76,8 +78,32 @@ export default function DespachoPage() {
   const [remoteSignatureStatus, setRemoteSignatureStatus] = useState<'waiting' | 'received'>('waiting');
   const [signatureMode, setSignatureMode] = useState<'qr' | 'local'>('qr');
   const [isFullScreenSignatureOpen, setIsFullScreenSignatureOpen] = useState(false);
+  const [notesModalVale, setNotesModalVale] = useState<Vale | null>(null);
+  const [internalNotes, setInternalNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
   const sigCanvas = useRef<SignatureCanvas>(null);
   const modalCanvasContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleSaveNotes = async () => {
+    if (!notesModalVale) return;
+    setSavingNotes(true);
+    
+    const { error } = await supabase
+      .from('vales')
+      .update({ notes: internalNotes })
+      .eq('id', notesModalVale.id);
+      
+    setSavingNotes(false);
+    
+    if (error) {
+      toast.error('Error al guardar las notas');
+      return;
+    }
+    
+    toast.success('Notas guardadas correctamente');
+    setVales(vales.map(v => v.id === notesModalVale.id ? { ...v, notes: internalNotes } : v));
+    setNotesModalVale(null);
+  };
 
   const handleSelectVale = (vale: Vale) => {
     setSelectedVale(vale);
@@ -412,10 +438,30 @@ export default function DespachoPage() {
                             )}
                           </ul>
                         </div>
+                        {/* Notes preview */}
+                        {vale.notes && (
+                          <div className="mt-3 bg-amber-500/10 text-amber-500/90 rounded-md p-3 border border-amber-500/20 text-xs">
+                            <p className="font-semibold mb-1 flex items-center gap-1"><MessageSquare className="w-3.5 h-3.5" /> Nota Interna</p>
+                            <p className="italic">{vale.notes}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="text-right shrink-0 mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInternalNotes(vale.notes || '');
+                          setNotesModalVale(vale);
+                        }}
+                        className="w-full sm:w-auto border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-1" />
+                        Notas
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="outline"
@@ -668,6 +714,40 @@ export default function DespachoPage() {
                   Confirmar Entrega
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!notesModalVale} onOpenChange={() => setNotesModalVale(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              Notas Internas
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Agrega una nota para el Vale #{notesModalVale?.vale_number}. Solo visible para la bodega.
+            </p>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Ej: Falta stock de guantes, se entregará mañana..."
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              className="min-h-[120px] resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNotesModalVale(null)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSaveNotes} 
+              disabled={savingNotes}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              {savingNotes ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar Nota
             </Button>
           </DialogFooter>
         </DialogContent>
