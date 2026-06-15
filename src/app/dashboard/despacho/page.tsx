@@ -587,8 +587,10 @@ export default function DespachoPage() {
                       <div className="absolute top-2 right-2 bg-success text-success-foreground text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" /> Recibida
                       </div>
-                      <img src={signatureData} alt="Firma recibida" className="h-32 object-contain" />
-                      <p className="text-xs text-success font-semibold mt-2">Firma digital lista para guardar</p>
+                      <div className="bg-white p-2 rounded-lg w-full max-w-[240px] h-28 flex items-center justify-center mt-4 shadow-sm border border-border/20">
+                        <img src={signatureData} alt="Firma recibida" className="h-full object-contain" />
+                      </div>
+                      <p className="text-xs text-success font-semibold mt-3">Firma digital lista para guardar</p>
                     </div>
                   )
                 ) : (
