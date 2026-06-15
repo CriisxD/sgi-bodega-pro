@@ -40,7 +40,7 @@ export default function EppPage() {
   const [sortBy, setSortBy] = usePersistentState<'name_asc' | 'name_desc' | 'rut'>('epp-sortBy', 'name_asc');
   const [areaFilter, setAreaFilter] = usePersistentState<string>('epp-areaFilter', 'all');
   const [positionFilter, setPositionFilter] = usePersistentState<string>('epp-positionFilter', 'all');
-  const [recordFilter, setRecordFilter] = useState<'all' | 'this_month' | 'last_30_days'>('all');
+  const [recordFilter, setRecordFilter] = useState<'all' | 'this_month' | 'last_month' | 'this_year'>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,10 +124,12 @@ export default function EppPage() {
       if (recordFilter === 'this_month') {
         return recordDate.getMonth() === now.getMonth() && recordDate.getFullYear() === now.getFullYear();
       }
-      if (recordFilter === 'last_30_days') {
-        const diffTime = Math.abs(now.getTime() - recordDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        return diffDays <= 30;
+      if (recordFilter === 'last_month') {
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return recordDate.getMonth() === lastMonthDate.getMonth() && recordDate.getFullYear() === lastMonthDate.getFullYear();
+      }
+      if (recordFilter === 'this_year') {
+        return recordDate.getFullYear() === now.getFullYear();
       }
       return true;
     });
@@ -311,28 +313,34 @@ export default function EppPage() {
 
       <Dialog open={!!selectedWorker} onOpenChange={() => setSelectedWorker(null)}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
-          <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
-            <div>
-              <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                <FileText className="w-5 h-5 text-chart-4" /> 
-                Ficha EPP: {selectedWorker?.name}
+          <DialogHeader className="flex flex-col sm:flex-row items-start justify-between gap-4 print:hidden pr-8">
+            <div className="min-w-0 w-full sm:flex-1">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 truncate">
+                <FileText className="w-5 h-5 text-chart-4 shrink-0" /> 
+                <span className="truncate">Ficha EPP: {selectedWorker?.name}</span>
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">RUT: {selectedWorker?.rut} — {selectedWorker?.position} ({selectedWorker?.area})</p>
+              <p className="text-sm text-muted-foreground mt-1 truncate">RUT: {selectedWorker?.rut} — {selectedWorker?.position} ({selectedWorker?.area})</p>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-row items-center gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
               <Select value={recordFilter} onValueChange={(v: any) => setRecordFilter(v)}>
-                <SelectTrigger className="w-full sm:w-[180px] h-9">
-                  <SelectValue placeholder="Periodo" />
+                <SelectTrigger className="w-[140px] sm:w-[180px] h-9 shrink-0">
+                  <SelectValue placeholder="Periodo">
+                    {recordFilter === 'all' && 'Histórico Completo'}
+                    {recordFilter === 'this_month' && 'Mes Actual'}
+                    {recordFilter === 'last_month' && 'Mes Anterior'}
+                    {recordFilter === 'this_year' && 'Año Actual'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Histórico Completo</SelectItem>
                   <SelectItem value="this_month">Mes Actual</SelectItem>
-                  <SelectItem value="last_30_days">Últimos 30 días</SelectItem>
+                  <SelectItem value="last_month">Mes Anterior</SelectItem>
+                  <SelectItem value="this_year">Año Actual</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={printRecord} className="h-9">
+              <Button variant="outline" size="sm" onClick={printRecord} className="h-9 shrink-0">
                 <Printer className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Imprimir Ficha</span>
+                <span className="hidden sm:inline">Imprimir</span>
               </Button>
             </div>
           </DialogHeader>
