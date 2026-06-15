@@ -313,15 +313,15 @@ export default function EppPage() {
 
       <Dialog open={!!selectedWorker} onOpenChange={() => setSelectedWorker(null)}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
-          <DialogHeader className="flex flex-col sm:flex-row items-start justify-between gap-4 print:hidden pr-8">
-            <div className="min-w-0 w-full sm:flex-1">
-              <DialogTitle className="text-xl font-bold flex items-center gap-2 truncate">
-                <FileText className="w-5 h-5 text-chart-4 shrink-0" /> 
-                <span className="truncate">Ficha EPP: {selectedWorker?.name}</span>
+          <DialogHeader className="flex flex-col items-start gap-4 print:hidden pr-8 pb-2">
+            <div className="w-full">
+              <DialogTitle className="text-xl font-bold flex items-start sm:items-center gap-2 whitespace-normal text-left">
+                <FileText className="w-5 h-5 text-chart-4 shrink-0 mt-0.5 sm:mt-0" /> 
+                <span>Ficha EPP: {selectedWorker?.name}</span>
               </DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1 truncate">RUT: {selectedWorker?.rut} — {selectedWorker?.position} ({selectedWorker?.area})</p>
+              <p className="text-sm text-muted-foreground mt-1 whitespace-normal text-left">RUT: {selectedWorker?.rut} — {selectedWorker?.position} ({selectedWorker?.area})</p>
             </div>
-            <div className="flex flex-row items-center gap-2 w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+            <div className="flex flex-row flex-wrap items-center gap-2 w-full">
               <Select value={recordFilter} onValueChange={(v: any) => setRecordFilter(v)}>
                 <SelectTrigger className="w-[140px] sm:w-[180px] h-9 shrink-0">
                   <SelectValue placeholder="Periodo">
