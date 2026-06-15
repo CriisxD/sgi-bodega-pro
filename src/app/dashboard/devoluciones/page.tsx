@@ -307,10 +307,10 @@ export default function DevolucionesPage() {
                 </div>
               </DialogHeader>
               
-              <div className="flex-1 overflow-y-auto pr-2 space-y-4 py-2 min-h-[300px]">
+              <div className="flex-1 overflow-hidden flex flex-col pr-2 space-y-4 py-2 min-h-[300px]">
                 {/* PASO 1: Tipo */}
                 {assignStep === 1 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-y-auto h-full">
                     <h3 className="font-medium text-center mb-4">¿Qué tipo de préstamo necesitas?</h3>
                     <div className="flex flex-col gap-3">
                       <button
@@ -338,7 +338,7 @@ export default function DevolucionesPage() {
                 {/* PASO 2: Trabajador */}
                 {assignStep === 2 && (
                   <div className="space-y-4 h-full flex flex-col">
-                    <h3 className="font-medium text-center">¿A quién se le prestará?</h3>
+                    <h3 className="font-medium text-center shrink-0">¿A quién se le prestará?</h3>
                     <div className="relative shrink-0">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
@@ -349,7 +349,7 @@ export default function DevolucionesPage() {
                         autoFocus
                       />
                     </div>
-                    <div className="grid gap-2 flex-1 overflow-y-auto">
+                    <div className="grid gap-2 flex-1 overflow-y-auto pb-2">
                       {filteredWorkers.map((worker) => (
                         <button
                           key={worker.id}
@@ -372,7 +372,7 @@ export default function DevolucionesPage() {
                 {/* PASO 3: Material / Herramienta + Cantidad */}
                 {assignStep === 3 && (
                   <div className="space-y-4 h-full flex flex-col">
-                    <h3 className="font-medium text-center">¿Qué material o herramienta necesita?</h3>
+                    <h3 className="font-medium text-center shrink-0">¿Qué material o herramienta necesita?</h3>
                     <div className="relative shrink-0">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
@@ -383,7 +383,7 @@ export default function DevolucionesPage() {
                         autoFocus
                       />
                     </div>
-                    <div className="grid gap-2 flex-1 overflow-y-auto">
+                    <div className="grid gap-2 flex-1 overflow-y-auto pb-2">
                       {filteredTools.map((tool) => (
                         <button
                           key={tool.id}
@@ -462,7 +462,7 @@ export default function DevolucionesPage() {
 
                 {/* PASO 4: Firma */}
                 {assignStep === 4 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-y-auto h-full pb-2">
                     <h3 className="font-medium text-center">Firma del trabajador</h3>
                     
                     {/* Resumen */}
