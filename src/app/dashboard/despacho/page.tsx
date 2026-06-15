@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +36,8 @@ import {
   Save,
   Smartphone,
   Wifi,
-  PenTool
+  PenTool,
+  Pencil
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { QRCodeSVG } from 'qrcode.react';
@@ -60,6 +62,7 @@ const valeTypeBadgeColors: Record<string, string> = {
 };
 
 export default function DespachoPage() {
+  const router = useRouter();
   const { profile } = useAuth();
   const supabase = createClient();
   const [vales, setVales] = useState<Vale[]>([]);
@@ -412,8 +415,20 @@ export default function DespachoPage() {
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0 mt-2 sm:mt-0">
-                      <Button size="sm">
+                    <div className="text-right shrink-0 mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/dashboard/vales/editar/${vale.id}`);
+                        }}
+                        className="w-full sm:w-auto"
+                      >
+                        <Pencil className="w-4 h-4 mr-1" />
+                        Editar
+                      </Button>
+                      <Button size="sm" className="w-full sm:w-auto">
                         <PackageCheck className="w-4 h-4 mr-1" />
                         Procesar
                       </Button>
