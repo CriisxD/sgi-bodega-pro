@@ -38,6 +38,7 @@ export default function DevolucionesPage() {
   const [conditionNotes, setConditionNotes] = useState('');
   const [reingresarStock, setReingresarStock] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [returnStatus, setReturnStatus] = useState<'bueno' | 'mantencion' | 'baja'>('bueno');
 
   // New Assignment Wizard states
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -154,16 +155,20 @@ export default function DevolucionesPage() {
     try {
       const qty = selectedAssignment.quantity || 1;
 
+      let newStatus = 'devuelto';
+      if (returnStatus === 'mantencion') newStatus = 'en_mantencion';
+      if (returnStatus === 'baja') newStatus = 'dado_de_baja';
+
       await supabase
         .from('tool_assignments')
         .update({
-          status: 'devuelto',
+          status: newStatus,
           returned_at: new Date().toISOString(),
           condition_notes: conditionNotes || null,
         })
         .eq('id', selectedAssignment.id);
 
-      if (reingresarStock) {
+      if (returnStatus === 'bueno' && reingresarStock) {
         await supabase.rpc('increase_stock', {
           p_product_id: selectedAssignment.product_id,
           p_quantity: qty,
@@ -180,7 +185,7 @@ export default function DevolucionesPage() {
         });
       }
 
-      toast.success(`${selectedAssignment.product?.name}${qty > 1 ? ` (x${qty})` : ''} marcado como devuelto.`);
+      toast.success(`${selectedAssignment.product?.name}${qty > 1 ? ` (x${qty})` : ''} procesado como ${newStatus}.`);
       setSelectedAssignment(null);
       fetchAssignments();
       fetchWorkersAndTools();
@@ -189,6 +194,7 @@ export default function DevolucionesPage() {
     } finally {
       setProcessing(false);
       setConditionNotes('');
+      setReturnStatus('bueno');
     }
   };
 
@@ -605,7 +611,10 @@ export default function DevolucionesPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      assignment.status === 'devuelto' ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'
+                      assignment.status === 'devuelto' ? 'bg-success/10 text-success' 
+                      : assignment.status === 'en_mantencion' ? 'bg-warning/10 text-warning'
+                      : assignment.status === 'dado_de_baja' ? 'bg-destructive/10 text-destructive'
+                      : 'bg-primary/10 text-primary'
                     }`}>
                       {assignment.status === 'devuelto' ? <CheckCircle className="w-6 h-6" /> : <Wrench className="w-6 h-6" />}
                     </div>
@@ -631,6 +640,10 @@ export default function DevolucionesPage() {
                         >
                           {assignment.status === 'devuelto' 
                             ? 'Devuelto' 
+                            : assignment.status === 'en_mantencion'
+                            ? 'En Mantención'
+                            : assignment.status === 'dado_de_baja'
+                            ? 'Dado de Baja'
                             : assignment.vale 
                               ? (assignment.vale.type === 'cargo_personal' ? 'Cargo Personal' : 'Uso Diario') 
                               : 'Asignación Directa'
@@ -719,29 +732,58 @@ export default function DevolucionesPage() {
               )}
 
               <div className="space-y-2">
+                <label className="text-sm font-medium">Estado Final de la Herramienta</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => setReturnStatus('bueno')}
+                    className={`p-2 text-sm rounded-lg border text-center transition-all ${returnStatus === 'bueno' ? 'border-success bg-success/10 ring-1 ring-success/30' : 'border-border'}`}
+                  >
+                    Buen Estado
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setReturnStatus('mantencion')}
+                    className={`p-2 text-sm rounded-lg border text-center transition-all ${returnStatus === 'mantencion' ? 'border-warning bg-warning/10 ring-1 ring-warning/30' : 'border-border'}`}
+                  >
+                    A Mantención
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setReturnStatus('baja')}
+                    className={`p-2 text-sm rounded-lg border text-center transition-all ${returnStatus === 'baja' ? 'border-destructive bg-destructive/10 ring-1 ring-destructive/30' : 'border-border'}`}
+                  >
+                    Dar de Baja
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Estado/Condición del ítem
+                  Notas de Condición / Razón
                 </label>
                 <Textarea
-                  placeholder="Ej. Ítem en buen estado, o presenta daños..."
+                  placeholder={returnStatus === 'bueno' ? "Ej. Ítem devuelto correctamente..." : "Motivo de la falla o daño..."}
                   value={conditionNotes}
                   onChange={(e) => setConditionNotes(e.target.value)}
                   rows={2}
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="reingresar"
-                  checked={reingresarStock}
-                  onChange={(e) => setReingresarStock(e.target.checked)}
-                  className="rounded border-gray-300 text-primary w-4 h-4"
-                />
-                <label htmlFor="reingresar" className="text-sm">
-                  Reingresar al inventario (aumentar stock en {selectedAssignment.quantity || 1})
-                </label>
-              </div>
+              {returnStatus === 'bueno' && (
+                <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                  <input
+                    type="checkbox"
+                    id="reingresar"
+                    checked={reingresarStock}
+                    onChange={(e) => setReingresarStock(e.target.checked)}
+                    className="rounded border-gray-300 text-primary w-4 h-4"
+                  />
+                  <label htmlFor="reingresar" className="text-sm">
+                    Reingresar al inventario (aumentar stock en {selectedAssignment.quantity || 1})
+                  </label>
+                </div>
+              )}
             </div>
           )}
 

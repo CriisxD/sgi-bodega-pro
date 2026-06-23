@@ -19,8 +19,9 @@ import {
   ChevronRight,
   PackagePlus,
   Undo2,
-  Shield,
   Zap,
+  Fuel,
+  PenLine,
 } from 'lucide-react';
 import { HormibalLogo } from '@/components/shared/hormibal-logo';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,12 @@ const navItems: NavItem[] = [
   },
   // --- Operaciones de Bodega (Bodeguero opera, Admin supervisa) ---
   {
+    title: 'Digitar Vale',
+    href: '/dashboard/vales/fisico',
+    icon: <PenLine className="w-5 h-5" />,
+    roles: ['bodeguero'],
+  },
+  {
     title: 'Despacho',
     href: '/dashboard/despacho',
     icon: <PackageCheck className="w-5 h-5" />,
@@ -79,6 +86,12 @@ const navItems: NavItem[] = [
     title: 'Recepciones',
     href: '/dashboard/recepciones',
     icon: <PackagePlus className="w-5 h-5" />,
+    roles: ['admin', 'bodeguero'],
+  },
+  {
+    title: 'Petróleo',
+    href: '/dashboard/petroleo',
+    icon: <Fuel className="w-5 h-5 text-warning" />,
     roles: ['admin', 'bodeguero'],
   },
   // --- Registros y Fichas ---
