@@ -61,7 +61,8 @@ export default function ProductosPage() {
   const [formCategoryId, setFormCategoryId] = useState('');
   const [formStock, setFormStock] = useState<number | string>(0);
   const [formMinStock, setFormMinStock] = useState<number | string>(0);
-  const [formUnit, setFormUnit] = useState('un');
+  const [formUnitBase, setFormUnitBase] = useState('un');
+  const [formUnitDetail, setFormUnitDetail] = useState('');
   const [formBrand, setFormBrand] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -255,7 +256,8 @@ export default function ProductosPage() {
     setFormCategoryId('');
     setFormStock(0);
     setFormMinStock(0);
-    setFormUnit('un');
+    setFormUnitBase('un');
+    setFormUnitDetail('');
     setFormBrand('');
     setIsModalOpen(true);
   };
@@ -266,7 +268,17 @@ export default function ProductosPage() {
     setFormCategoryId(product.category_id);
     setFormStock(product.stock);
     setFormMinStock(product.min_stock);
-    setFormUnit(product.unit);
+    
+    let base = product.unit;
+    let detail = '';
+    if (base.includes(' de ')) {
+      const parts = base.split(' de ');
+      base = parts[0];
+      detail = parts[1];
+    }
+    setFormUnitBase(base);
+    setFormUnitDetail(detail || '');
+    
     setFormBrand(product.brand || '');
     setIsModalOpen(true);
   };
@@ -277,6 +289,10 @@ export default function ProductosPage() {
 
     const stockToSave = typeof formStock === 'string' ? (parseInt(formStock, 10) || 0) : formStock;
     const minStockToSave = typeof formMinStock === 'string' ? (parseInt(formMinStock, 10) || 0) : formMinStock;
+
+    const finalUnit = ['rollo', 'caja', 'bolsa', 'tira', 'set'].includes(formUnitBase) && formUnitDetail.trim() 
+      ? `${formUnitBase} de ${formUnitDetail.trim()}`
+      : formUnitBase;
 
     setSaving(true);
     try {
@@ -293,7 +309,7 @@ export default function ProductosPage() {
             category_id: formCategoryId,
             stock: stockToSave,
             min_stock: minStockToSave,
-            unit: formUnit,
+            unit: finalUnit,
           })
           .eq('id', editingProduct.id);
         if (error) throw error;
@@ -320,7 +336,7 @@ export default function ProductosPage() {
             category_id: formCategoryId,
             stock: stockToSave,
             min_stock: minStockToSave,
-            unit: formUnit,
+            unit: finalUnit,
           });
         if (error) throw error;
         toast.success('Producto creado exitosamente');
@@ -886,22 +902,34 @@ export default function ProductosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Unidad</Label>
-                <Input 
-                  list="unit-options-main"
-                  placeholder="Ej. un, caja, mt..."
-                  value={formUnit} 
-                  onChange={e => setFormUnit(e.target.value)} 
-                />
-                <datalist id="unit-options-main">
-                  <option value="un" />
-                  <option value="par" />
-                  <option value="mt" />
-                  <option value="kg" />
-                  <option value="lt" />
-                  <option value="rollo" />
-                  <option value="caja" />
-                  <option value="bolsa" />
-                </datalist>
+                <div className="flex gap-2">
+                  <Select value={formUnitBase} onValueChange={(val) => setFormUnitBase(val || 'un')}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="un">un (Unidad)</SelectItem>
+                      <SelectItem value="par">par (Par)</SelectItem>
+                      <SelectItem value="mt">mt (Metro)</SelectItem>
+                      <SelectItem value="kg">kg (Kilo)</SelectItem>
+                      <SelectItem value="lt">lt (Litro)</SelectItem>
+                      <SelectItem value="rollo">rollo</SelectItem>
+                      <SelectItem value="caja">caja</SelectItem>
+                      <SelectItem value="bolsa">bolsa</SelectItem>
+                      <SelectItem value="tira">tira</SelectItem>
+                      <SelectItem value="set">set</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {['rollo', 'caja', 'bolsa', 'tira', 'set'].includes(formUnitBase) && (
+                    <Input 
+                      placeholder="Cant. (Ej: 100)"
+                      value={formUnitDetail}
+                      onChange={e => setFormUnitDetail(e.target.value)}
+                      className="w-32"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>

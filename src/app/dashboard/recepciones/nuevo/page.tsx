@@ -24,7 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Plus, Trash2, Save, Loader2, ArrowLeft, PackagePlus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, Plus, Trash2, Save, Loader2, ArrowLeft, PackagePlus, Upload, Download } from 'lucide-react';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import type { Product, Category } from '@/lib/types';
 
@@ -65,8 +67,16 @@ export default function NuevaRecepcionPage() {
   const [newProdName, setNewProdName] = useState('');
   const [newProdCat, setNewProdCat] = useState('');
   const [newProdMinStock, setNewProdMinStock] = useState<number | string>(0);
-  const [newProdUnit, setNewProdUnit] = useState('un');
+  const [newProdUnitBase, setNewProdUnitBase] = useState('un');
+  const [newProdUnitDetail, setNewProdUnitDetail] = useState('');
   const [newProdBrand, setNewProdBrand] = useState('');
+
+  // Import CSV State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchData();
@@ -115,6 +125,10 @@ export default function NuevaRecepcionPage() {
       toast.error('Falta el nombre o la categoría');
       return;
     }
+
+    const finalUnit = ['rollo', 'caja', 'bolsa', 'tira', 'set'].includes(newProdUnitBase) && newProdUnitDetail.trim() 
+      ? `${newProdUnitBase} de ${newProdUnitDetail.trim()}`
+      : newProdUnitBase;
     
     try {
       const { data, error } = await supabase.from('products').insert({
@@ -123,7 +137,7 @@ export default function NuevaRecepcionPage() {
         category_id: newProdCat,
         stock: 0,
         min_stock: newProdMinStock === '' ? 0 : (newProdMinStock as number),
-        unit: newProdUnit.trim() || 'un'
+        unit: finalUnit
       }).select('*, category:categories(*)').single();
       
       if (error) throw error;
@@ -135,10 +149,160 @@ export default function NuevaRecepcionPage() {
       setNewProdName('');
       setNewProdBrand('');
       setNewProdCat('');
+      setNewProdUnitBase('un');
+      setNewProdUnitDetail('');
       
     } catch (e: any) {
       toast.error('Error al crear producto: ' + e.message);
     }
+  };
+
+  const handleDownloadTemplate = () => {
+    const csvContent = "Producto,Cantidad,Precio_Unitario_Neto\n\"Nombre exacto del producto\",10,5000";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "plantilla_recepcion.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const parseCSVLine = (line: string) => {
+    const result = [];
+    let cell = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"' && line[i+1] === '"') {
+        cell += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(cell);
+        cell = '';
+      } else {
+        cell += char;
+      }
+    }
+    result.push(cell);
+    return result;
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        
+        if (lines.length < 2) {
+          toast.error("El archivo está vacío o no tiene datos.");
+          setImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+
+        const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+        const prodIdx = headers.findIndex(h => h.includes('producto') || h.includes('nombre'));
+        const cantIdx = headers.findIndex(h => h.includes('cantidad') || h.includes('cant'));
+        const precIdx = headers.findIndex(h => h.includes('precio') || h.includes('neto'));
+
+        if (prodIdx === -1 || cantIdx === -1) {
+          toast.error("Formato inválido. Descarga la plantilla primero.");
+          setImporting(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+
+        const preview = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const cells = parseCSVLine(lines[i]);
+          if (cells.length < 2) continue;
+
+          const rawName = cells[prodIdx]?.trim();
+          const rawCant = cells[cantIdx]?.trim();
+          const rawPrec = precIdx !== -1 ? cells[precIdx]?.trim() : '0';
+
+          if (!rawName) continue;
+
+          // Find product exactly by name
+          const matchedProduct = products.find(p => p.name.toLowerCase() === rawName.toLowerCase());
+
+          const quantity = parseInt(rawCant) || 0;
+          const unitPrice = parseFloat(rawPrec) || 0;
+
+          if (matchedProduct) {
+            preview.push({
+              status: 'ok',
+              rawName,
+              matchedProduct,
+              quantity,
+              unitPrice
+            });
+          } else {
+            preview.push({
+              status: 'error',
+              rawName,
+              errorMessage: 'Producto no encontrado en el catálogo',
+              quantity,
+              unitPrice
+            });
+          }
+        }
+
+        setPreviewData(preview);
+        setShowPreview(true);
+      } catch (err: any) {
+        toast.error("Error al leer el archivo: " + err.message);
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  };
+
+  const removePreviewRow = (index: number) => {
+    setPreviewData(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const confirmImport = () => {
+    const hasErrors = previewData.some(r => r.status === 'error');
+    if (hasErrors) {
+      toast.error('Corrige o elimina los productos con error antes de confirmar');
+      return;
+    }
+
+    const newCart = [...cart];
+    for (const row of previewData) {
+      if (row.status !== 'ok') continue;
+      
+      const existingIdx = newCart.findIndex(item => item.product.id === row.matchedProduct.id);
+      if (existingIdx >= 0) {
+        newCart[existingIdx].quantity += row.quantity;
+        if (row.unitPrice > 0) newCart[existingIdx].unit_price = row.unitPrice;
+      } else {
+        newCart.push({
+          product: row.matchedProduct,
+          quantity: row.quantity,
+          unit_price: row.unitPrice
+        });
+      }
+    }
+
+    setCart(newCart);
+    toast.success(`${previewData.length} productos añadidos al carro`);
+    setIsImportModalOpen(false);
+    setShowPreview(false);
+    setPreviewData([]);
   };
 
   // Calculated totals
@@ -390,14 +554,24 @@ export default function NuevaRecepcionPage() {
                 </div>
               )}
 
-              <Button 
-                variant="outline" 
-                className="w-full border-dashed"
-                onClick={() => setIsNewProductOpen(true)}
-              >
-                <PackagePlus className="w-4 h-4 mr-2" />
-                Crear Nuevo Producto Rápido
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full border-dashed"
+                  onClick={() => setIsNewProductOpen(true)}
+                >
+                  <PackagePlus className="w-4 h-4 mr-2" />
+                  Crear Nuevo
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full border-dashed bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary"
+                  onClick={() => setIsImportModalOpen(true)}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importar CSV
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -561,22 +735,34 @@ export default function NuevaRecepcionPage() {
               </div>
               <div className="space-y-2">
                 <Label>Unidad</Label>
-                <Input 
-                  list="unit-options"
-                  placeholder="Ej. un, caja, mt..."
-                  value={newProdUnit} 
-                  onChange={e => setNewProdUnit(e.target.value)} 
-                />
-                <datalist id="unit-options">
-                  <option value="un" />
-                  <option value="par" />
-                  <option value="mt" />
-                  <option value="kg" />
-                  <option value="lt" />
-                  <option value="rollo" />
-                  <option value="caja" />
-                  <option value="bolsa" />
-                </datalist>
+                <div className="flex gap-2">
+                  <Select value={newProdUnitBase} onValueChange={(val) => setNewProdUnitBase(val || 'un')}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="un">un (Unidad)</SelectItem>
+                      <SelectItem value="par">par (Par)</SelectItem>
+                      <SelectItem value="mt">mt (Metro)</SelectItem>
+                      <SelectItem value="kg">kg (Kilo)</SelectItem>
+                      <SelectItem value="lt">lt (Litro)</SelectItem>
+                      <SelectItem value="rollo">rollo</SelectItem>
+                      <SelectItem value="caja">caja</SelectItem>
+                      <SelectItem value="bolsa">bolsa</SelectItem>
+                      <SelectItem value="tira">tira</SelectItem>
+                      <SelectItem value="set">set</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {['rollo', 'caja', 'bolsa', 'tira', 'set'].includes(newProdUnitBase) && (
+                    <Input 
+                      placeholder="Cant. (Ej: 100)"
+                      value={newProdUnitDetail}
+                      onChange={e => setNewProdUnitDetail(e.target.value)}
+                      className="w-32"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -584,6 +770,126 @@ export default function NuevaRecepcionPage() {
             <Button variant="outline" onClick={() => setIsNewProductOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateProduct}>Guardar y Añadir</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Modal */}
+      <Dialog open={isImportModalOpen} onOpenChange={(open) => {
+        setIsImportModalOpen(open);
+        if (!open) {
+          setShowPreview(false);
+          setPreviewData([]);
+        }
+      }}>
+        <DialogContent className={showPreview ? "max-w-[95vw] sm:max-w-4xl max-h-[90vh]" : "max-w-md"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-primary" /> 
+              {showPreview ? 'Vista Previa de Importación' : 'Importación Masiva de Productos'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {!showPreview ? (
+            <div className="space-y-6 py-4">
+              <div className="bg-muted/50 p-4 rounded-lg border border-border text-sm space-y-3">
+                <p>Para cargar múltiples productos a la recepción, usa nuestra plantilla CSV:</p>
+                <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                  <li>Descarga la plantilla CSV.</li>
+                  <li>Abre el archivo en Excel o Google Sheets.</li>
+                  <li>Ingresa el <strong className="text-foreground">Nombre Exacto</strong> del producto tal cual está en el catálogo, la cantidad, y el precio neto opcional.</li>
+                  <li>Guarda como CSV y sube el archivo aquí.</li>
+                </ol>
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={handleDownloadTemplate}>
+                <Download className="w-4 h-4 mr-2" /> Descargar Plantilla CSV
+              </Button>
+
+              <div className="space-y-2">
+                <Label>Subir Archivo CSV Lleno</Label>
+                <Input 
+                  type="file" 
+                  accept=".csv" 
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  disabled={importing}
+                />
+                {importing && (
+                  <div className="flex items-center gap-2 text-sm text-primary mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Procesando importación...
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="flex flex-wrap gap-4 mb-2">
+                <Badge variant="outline" className="bg-success/10 text-success border-success/20 py-1">
+                  {previewData.filter(r => r.status === 'ok').length} Listos
+                </Badge>
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 py-1">
+                  {previewData.filter(r => r.status === 'error').length} Errores
+                </Badge>
+              </div>
+              
+              <div className="border rounded-md overflow-hidden flex-1 min-h-0 relative">
+                <div className="max-h-[60vh] overflow-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                      <TableRow>
+                        <TableHead className="w-[100px]">Estado</TableHead>
+                        <TableHead>Producto (CSV)</TableHead>
+                        <TableHead>Producto Encontrado</TableHead>
+                        <TableHead className="text-right">Cantidad</TableHead>
+                        <TableHead className="text-right">P. Unitario</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewData.map((row, i) => (
+                        <TableRow key={i} className={row.status === 'error' ? 'bg-destructive/5' : ''}>
+                          <TableCell>
+                             {row.status === 'ok' ? <Badge className="bg-success hover:bg-success/80">OK</Badge> : <Badge variant="destructive">Error</Badge>}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                             <div className="font-medium">{row.rawName}</div>
+                             {row.status === 'error' && <p className="text-xs text-destructive mt-0.5">{row.errorMessage}</p>}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                             {row.matchedProduct?.name || '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">
+                             {row.quantity}
+                          </TableCell>
+                          <TableCell className="text-right text-muted-foreground">
+                             ${row.unitPrice.toLocaleString('es-CL')}
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removePreviewRow(i)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {previewData.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center py-4">No hay datos que procesar</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              
+              <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between w-full">
+                 <Button variant="outline" onClick={() => { setShowPreview(false); setPreviewData([]); }}>
+                   Descartar y Volver
+                 </Button>
+                 <Button onClick={confirmImport} disabled={importing || previewData.length === 0 || previewData.some(r => r.status === 'error')}>
+                   {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                   Confirmar y Añadir a la Lista
+                 </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
