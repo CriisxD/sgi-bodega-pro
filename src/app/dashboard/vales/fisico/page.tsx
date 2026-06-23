@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PenLine, Plus, Trash2, Loader2, Save } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PenLine, Plus, Trash2, Loader2, Save, Check, ChevronsUpDown, UserPlus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Worker, Product } from '@/lib/types';
 
@@ -24,8 +28,16 @@ export default function DigitarValeFisicoPage() {
   const [workerId, setWorkerId] = useState('');
   const [valeType, setValeType] = useState('uso_diario');
   const [notes, setNotes] = useState('');
-  
   const [items, setItems] = useState([{ product_id: '', quantity: 1 }]);
+  
+  // Combobox states
+  const [openWorker, setOpenWorker] = useState(false);
+  const [openProducts, setOpenProducts] = useState<Record<number, boolean>>({});
+
+  // Fast Create Worker state
+  const [createWorkerOpen, setCreateWorkerOpen] = useState(false);
+  const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '' });
+  const [creatingWorker, setCreatingWorker] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +64,31 @@ export default function DigitarValeFisicoPage() {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
+  };
+
+  const handleCreateWorker = async () => {
+    if (!newWorkerData.name || !newWorkerData.rut) return toast.error('Nombre y RUT son obligatorios');
+    setCreatingWorker(true);
+    try {
+      const { data, error } = await supabase.from('workers').insert({
+        name: newWorkerData.name,
+        rut: newWorkerData.rut,
+        area: newWorkerData.area || 'General',
+        active: true
+      }).select().single();
+      
+      if (error) throw error;
+      
+      setWorkers([...workers, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setWorkerId(data.id);
+      setCreateWorkerOpen(false);
+      setNewWorkerData({ name: '', rut: '', area: '' });
+      toast.success('Trabajador creado y seleccionado');
+    } catch (e: any) {
+      toast.error('Error al crear trabajador: ' + e.message);
+    } finally {
+      setCreatingWorker(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,16 +200,60 @@ export default function DigitarValeFisicoPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Trabajador (Receptor)</Label>
-                <Select value={workerId} onValueChange={(val: any) => setWorkerId(val)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Buscar trabajador..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workers.map(w => (
-                      <SelectItem key={w.id} value={w.id}>{w.name} ({w.rut})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Popover open={openWorker} onOpenChange={setOpenWorker}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openWorker}
+                        className="w-full justify-between"
+                      >
+                        {workerId
+                          ? workers.find((w) => w.id === workerId)?.name
+                          : "Buscar trabajador..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar por nombre o RUT..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
+                          <CommandGroup>
+                            {workers.map((worker) => (
+                              <CommandItem
+                                key={worker.id}
+                                value={`${worker.name} ${worker.rut}`}
+                                onSelect={() => {
+                                  setWorkerId(worker.id);
+                                  setOpenWorker(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    workerId === worker.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {worker.name} ({worker.rut})
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setCreateWorkerOpen(true)}
+                    title="Crear nuevo trabajador rápido"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -206,22 +287,54 @@ export default function DigitarValeFisicoPage() {
                   <div key={idx} className="flex gap-3 items-end bg-muted/20 p-3 rounded-lg border border-border/50">
                     <div className="flex-1 space-y-2">
                       <Label>Producto</Label>
-                      <Select 
-                        value={item.product_id} 
-                        onValueChange={(val: any) => handleItemChange(idx, 'product_id', val)}
-                        required
+                      <Popover 
+                        open={openProducts[idx] || false} 
+                        onOpenChange={(val) => setOpenProducts({...openProducts, [idx]: val})}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar producto..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map(p => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name} <span className="text-muted-foreground ml-2">(Stock: {p.stock} {p.unit})</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between font-normal"
+                          >
+                            {item.product_id
+                              ? products.find((p) => p.id === item.product_id)?.name
+                              : "Buscar producto en bodega..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar por nombre o código..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontró el producto.</CommandEmpty>
+                              <CommandGroup>
+                                {products.map((product) => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.name}
+                                    onSelect={() => {
+                                      handleItemChange(idx, 'product_id', product.id);
+                                      setOpenProducts({...openProducts, [idx]: false});
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        item.product_id === product.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {product.name} 
+                                    <span className="text-muted-foreground ml-2 text-xs">
+                                      (Stock: {product.stock} {product.unit})
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="w-24 space-y-2">
                       <Label>Cantidad</Label>
@@ -264,6 +377,48 @@ export default function DigitarValeFisicoPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Fast Create Worker Dialog */}
+      <Dialog open={createWorkerOpen} onOpenChange={setCreateWorkerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Trabajador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nombre Completo</Label>
+              <Input 
+                value={newWorkerData.name} 
+                onChange={e => setNewWorkerData({...newWorkerData, name: e.target.value})} 
+                placeholder="Ej. Juan Pérez" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>RUT</Label>
+              <Input 
+                value={newWorkerData.rut} 
+                onChange={e => setNewWorkerData({...newWorkerData, rut: e.target.value})} 
+                placeholder="12.345.678-9" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Área / Especialidad</Label>
+              <Input 
+                value={newWorkerData.area} 
+                onChange={e => setNewWorkerData({...newWorkerData, area: e.target.value})} 
+                placeholder="Ej. Carpintería, Maestranza..." 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateWorkerOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateWorker} disabled={creatingWorker}>
+              {creatingWorker ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
