@@ -33,8 +33,8 @@ interface CartItem {
 }
 
 const valeTypeOptions: { value: ValeType; label: string; description: string; icon: any; roles: string[] }[] = [
-  { value: 'material', label: 'Material / Herramientas', description: 'Tornillos, pintura, herramientas de uso, etc.', icon: Wrench, roles: ['admin', 'supervisor', 'bodeguero'] },
-  { value: 'epp', label: 'EPP', description: 'Elementos de Protección Personal (Requiere firma)', icon: HardHat, roles: ['admin', 'prevencionista', 'bodeguero'] },
+  { value: 'material', label: 'Material / Herramientas', description: 'Tornillos, pintura, herramientas de uso, etc.', icon: Wrench, roles: ['admin', 'supervisor'] },
+  { value: 'epp', label: 'EPP', description: 'Elementos de Protección Personal (Requiere firma)', icon: HardHat, roles: ['admin', 'prevencionista'] },
 ];
 
 export default function NuevoValePage() {
