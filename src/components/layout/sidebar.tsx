@@ -19,6 +19,7 @@ import {
   ChevronRight,
   PackagePlus,
   Undo2,
+  Shield,
   Zap,
   Fuel,
   PenLine,

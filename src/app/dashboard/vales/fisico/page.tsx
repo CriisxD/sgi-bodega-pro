@@ -163,7 +163,7 @@ export default function DigitarValeFisicoPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Trabajador (Receptor)</Label>
-                <Select value={workerId} onValueChange={setWorkerId} required>
+                <Select value={workerId} onValueChange={(val: any) => setWorkerId(val)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Buscar trabajador..." />
                   </SelectTrigger>
@@ -177,7 +177,7 @@ export default function DigitarValeFisicoPage() {
 
               <div className="space-y-2">
                 <Label>Tipo de Vale</Label>
-                <Select value={valeType} onValueChange={setValeType} required>
+                <Select value={valeType} onValueChange={(val: any) => setValeType(val)} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione tipo" />
                   </SelectTrigger>
@@ -208,7 +208,7 @@ export default function DigitarValeFisicoPage() {
                       <Label>Producto</Label>
                       <Select 
                         value={item.product_id} 
-                        onValueChange={(val) => handleItemChange(idx, 'product_id', val)}
+                        onValueChange={(val: any) => handleItemChange(idx, 'product_id', val)}
                         required
                       >
                         <SelectTrigger>
