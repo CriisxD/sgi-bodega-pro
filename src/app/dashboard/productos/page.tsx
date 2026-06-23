@@ -347,6 +347,35 @@ export default function ProductosPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportCSV = () => {
+    if (products.length === 0) {
+      toast.error('No hay productos para exportar');
+      return;
+    }
+
+    const dataToExport = products.map(p => ({
+      Nombre: p.name,
+      Categoria: p.category?.name || '',
+      Tipo_Principal: p.category?.type || '',
+      Marca: p.brand || '',
+      Stock_Actual: p.stock,
+      Stock_Minimo: p.min_stock,
+      Unidad: p.unit,
+      Estado: p.active ? 'Activo' : 'Inactivo'
+    }));
+
+    const csvContent = Papa.unparse(dataToExport);
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Inventario_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Inventario exportado exitosamente');
+  };
+
   const processImport = async (file: File) => {
     if (!importCategoryId) {
       toast.error('Debes seleccionar una categoría antes de importar');
@@ -604,6 +633,10 @@ export default function ProductosPage() {
           <Button variant="outline" onClick={() => setIsCategoryModalOpen(true)}>
             <Tags className="w-4 h-4 mr-2" />
             Categorías
+          </Button>
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
           </Button>
           <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
             <Upload className="w-4 h-4 mr-2" />
