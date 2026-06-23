@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import {
   Search, Loader2, Package, AlertTriangle, History,
   ArrowDownRight, ArrowUpRight, LayoutGrid, List,
-  ArrowUpDown, SlidersHorizontal, Plus, Minus, Save,
+  ArrowUpDown, SlidersHorizontal, Plus, Minus, Save, Download
 } from 'lucide-react';
+import Papa from 'papaparse';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -211,6 +212,35 @@ export default function StockPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (filteredProducts.length === 0) {
+      toast.error('No hay productos en esta vista para exportar');
+      return;
+    }
+
+    const dataToExport = filteredProducts.map(p => ({
+      Producto: p.name,
+      Categoria: p.category?.name || 'Sin categoría',
+      Tipo_Categoria: p.category?.type || '',
+      Marca: p.brand || '',
+      Stock_Actual: p.stock,
+      Stock_Minimo: p.min_stock,
+      Unidad: p.unit,
+      Estado: p.stock <= p.min_stock && p.min_stock > 0 ? 'CRITICO' : 'OK'
+    }));
+
+    const csvContent = Papa.unparse(dataToExport);
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Inventario_Stock_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Inventario exportado exitosamente');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -231,9 +261,14 @@ export default function StockPage() {
             </p>
           </div>
 
-          {/* View Toggle - Desktop Only */}
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="flex border rounded-lg overflow-hidden">
+          {/* View Toggle and Actions */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} className="hidden sm:flex">
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            
+            <div className="hidden sm:flex border rounded-lg overflow-hidden">
               <Button
                 variant={viewMode === 'cards' ? 'default' : 'ghost'}
                 size="icon"
@@ -251,6 +286,11 @@ export default function StockPage() {
                 <List className="w-4 h-4" />
               </Button>
             </div>
+            
+            {/* Mobile Export Button */}
+            <Button variant="outline" size="icon" onClick={handleExportCSV} className="sm:hidden h-10 w-10 shrink-0">
+              <Download className="w-4 h-4 text-muted-foreground" />
+            </Button>
           </div>
         </div>
 

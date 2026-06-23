@@ -22,8 +22,16 @@ import {
   ArrowRight,
   ArrowLeft,
   HardHat,
-  Wrench
+  Wrench,
+  Save
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Worker, Product, ValeType } from '@/lib/types';
 
@@ -55,6 +63,11 @@ export default function NuevoValePage() {
   const [success, setSuccess] = useState(false);
   const [valeNumber, setValeNumber] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Quick Stock Adjust
+  const [quickAdjustProduct, setQuickAdjustProduct] = useState<Product | null>(null);
+  const [quickAdjustQty, setQuickAdjustQty] = useState<number | ''>(1);
+  const [adjusting, setAdjusting] = useState(false);
 
   const scrollToTop = () => {
     setTimeout(() => {
@@ -144,6 +157,37 @@ export default function NuevoValePage() {
 
   const removeFromCart = (productId: string) => {
     setCart(cart.filter((c) => c.product.id !== productId));
+  };
+
+  const handleQuickAdjust = async () => {
+    if (!quickAdjustProduct || quickAdjustQty === '' || quickAdjustQty <= 0) return;
+    setAdjusting(true);
+    try {
+      const { error } = await supabase.rpc('increase_stock', {
+        p_product_id: quickAdjustProduct.id,
+        p_quantity: quickAdjustQty
+      });
+      if (error) {
+        await supabase.from('products').update({ stock: quickAdjustProduct.stock + quickAdjustQty }).eq('id', quickAdjustProduct.id);
+      }
+      await supabase.from('stock_movements').insert({
+        product_id: quickAdjustProduct.id,
+        type: 'entrada',
+        quantity: quickAdjustQty,
+        reference_type: 'ajuste_manual',
+        notes: 'Ingreso rápido desde creación de vale',
+        created_by: profile?.id
+      });
+      
+      setProducts(products.map(p => p.id === quickAdjustProduct.id ? { ...p, stock: p.stock + quickAdjustQty } : p));
+      toast.success(`Stock aumentado en ${quickAdjustQty}`);
+      setQuickAdjustProduct(null);
+      setQuickAdjustQty(1);
+    } catch (e: any) {
+      toast.error('Error al ajustar stock: ' + e.message);
+    } finally {
+      setAdjusting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -439,9 +483,24 @@ export default function NuevoValePage() {
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="secondary" onClick={() => addToCart(product)} disabled={product.stock <= 0} className="w-full sm:w-auto h-10 font-semibold shadow-sm">
-                          <Plus className="w-4 h-4 mr-2" /> Agregar
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {product.stock <= 0 && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="w-full sm:w-auto h-10 shadow-sm border-primary/50 text-primary hover:bg-primary/10"
+                              onClick={() => {
+                                setQuickAdjustProduct(product);
+                                setQuickAdjustQty(1);
+                              }}
+                            >
+                              <Plus className="w-4 h-4 mr-1" /> Stock
+                            </Button>
+                          )}
+                          <Button size="sm" variant="secondary" onClick={() => addToCart(product)} disabled={product.stock <= 0} className="w-full sm:w-auto h-10 font-semibold shadow-sm">
+                            <Plus className="w-4 h-4 mr-2" /> Agregar
+                          </Button>
+                        </div>
                       )}
                     </div>
                   );
@@ -535,6 +594,37 @@ export default function NuevoValePage() {
         )}
 
       </Card>
+
+      {/* Quick Adjust Stock Dialog */}
+      <Dialog open={!!quickAdjustProduct} onOpenChange={(open) => !open && setQuickAdjustProduct(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Añadir Stock Rápido</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm font-semibold">{quickAdjustProduct?.name}</p>
+            <p className="text-sm text-muted-foreground -mt-3">Stock actual: {quickAdjustProduct?.stock} {quickAdjustProduct?.unit}</p>
+            
+            <div className="space-y-2 mt-2">
+              <Label>Cantidad a ingresar</Label>
+              <Input 
+                type="number" 
+                min={1} 
+                value={quickAdjustQty} 
+                onChange={e => setQuickAdjustQty(e.target.value === '' ? '' : parseInt(e.target.value))} 
+                className="text-lg font-bold"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickAdjustProduct(null)}>Cancelar</Button>
+            <Button onClick={handleQuickAdjust} disabled={adjusting || quickAdjustQty === '' || quickAdjustQty <= 0}>
+              {adjusting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -39,11 +39,16 @@ export default function DigitarValeFisicoPage() {
   const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '' });
   const [creatingWorker, setCreatingWorker] = useState(false);
 
+  // Quick Stock Adjust
+  const [quickAdjustProduct, setQuickAdjustProduct] = useState<Product | null>(null);
+  const [quickAdjustQty, setQuickAdjustQty] = useState<number | ''>(1);
+  const [adjusting, setAdjusting] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       const [wRes, pRes] = await Promise.all([
         supabase.from('workers').select('*').eq('active', true).order('name'),
-        supabase.from('products').select('*').eq('active', true).order('name')
+        supabase.from('products').select('*, category:categories(*)').eq('active', true).order('name')
       ]);
       setWorkers(wRes.data || []);
       setProducts(pRes.data || []);
@@ -51,6 +56,11 @@ export default function DigitarValeFisicoPage() {
     };
     fetchData();
   }, [supabase]);
+
+  const filteredProducts = products.filter(p => {
+    if (valeType === 'epp') return p.category?.type === 'epp';
+    return p.category?.type === 'material' || p.category?.type === 'consumible' || !p.category;
+  });
 
   const handleAddItem = () => {
     setItems([...items, { product_id: '', quantity: 1 }]);
@@ -88,6 +98,37 @@ export default function DigitarValeFisicoPage() {
       toast.error('Error al crear trabajador: ' + e.message);
     } finally {
       setCreatingWorker(false);
+    }
+  };
+
+  const handleQuickAdjust = async () => {
+    if (!quickAdjustProduct || quickAdjustQty === '' || quickAdjustQty <= 0) return;
+    setAdjusting(true);
+    try {
+      const { error } = await supabase.rpc('increase_stock', {
+        p_product_id: quickAdjustProduct.id,
+        p_quantity: quickAdjustQty
+      });
+      if (error) {
+        await supabase.from('products').update({ stock: quickAdjustProduct.stock + quickAdjustQty }).eq('id', quickAdjustProduct.id);
+      }
+      await supabase.from('stock_movements').insert({
+        product_id: quickAdjustProduct.id,
+        type: 'entrada',
+        quantity: quickAdjustQty,
+        reference_type: 'ajuste_manual',
+        notes: 'Ingreso rápido desde digitación de vale',
+        created_by: profile?.id
+      });
+      
+      setProducts(products.map(p => p.id === quickAdjustProduct.id ? { ...p, stock: p.stock + quickAdjustQty } : p));
+      toast.success(`Stock aumentado en ${quickAdjustQty}`);
+      setQuickAdjustProduct(null);
+      setQuickAdjustQty(1);
+    } catch (e: any) {
+      toast.error('Error al ajustar stock: ' + e.message);
+    } finally {
+      setAdjusting(false);
     }
   };
 
@@ -254,7 +295,12 @@ export default function DigitarValeFisicoPage() {
                 <Label>Tipo de Vale</Label>
                 <Select value={valeType} onValueChange={(val: any) => setValeType(val)} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccione tipo" />
+                    <SelectValue placeholder="Seleccione tipo">
+                      {valeType === 'uso_diario' && 'Uso Diario (Devolución hoy)'}
+                      {valeType === 'cargo_personal' && 'Cargo Personal (Largo plazo)'}
+                      {valeType === 'material' && 'Material (Consumo)'}
+                      {valeType === 'epp' && 'EPP (Requiere firma legal)'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="uso_diario">Uso Diario (Devolución hoy)</SelectItem>
@@ -277,14 +323,16 @@ export default function DigitarValeFisicoPage() {
               </div>
               
               <div className="space-y-3">
-                {items.map((item, idx) => (
-                  <div key={idx} className="flex gap-3 items-end bg-muted/20 p-3 rounded-lg border border-border/50">
-                    <div className="flex-1 space-y-2">
-                      <Label>Producto</Label>
-                      <Popover 
-                        open={openProducts[idx] || false} 
-                        onOpenChange={(val) => setOpenProducts({...openProducts, [idx]: val})}
-                      >
+                {items.map((item, idx) => {
+                  const selectedProd = products.find(p => p.id === item.product_id);
+                  return (
+                    <div key={idx} className="flex gap-3 items-start bg-muted/20 p-3 rounded-lg border border-border/50">
+                      <div className="flex-1 space-y-2">
+                        <Label>Producto</Label>
+                        <Popover 
+                          open={openProducts[idx] || false} 
+                          onOpenChange={(val) => setOpenProducts({...openProducts, [idx]: val})}
+                        >
                         {/* @ts-ignore Base UI render prop */}
                         <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between font-normal" />}>
                             {item.product_id
@@ -298,7 +346,7 @@ export default function DigitarValeFisicoPage() {
                             <CommandList>
                               <CommandEmpty>No se encontró el producto.</CommandEmpty>
                               <CommandGroup>
-                                {products.map((product) => (
+                                {filteredProducts.map((product) => (
                                   <CommandItem
                                     key={product.id}
                                     value={product.name}
@@ -324,6 +372,26 @@ export default function DigitarValeFisicoPage() {
                           </Command>
                         </PopoverContent>
                       </Popover>
+                      
+                      {selectedProd && (
+                        <div className="flex items-center gap-2 mt-1.5 ml-1">
+                          <span className={cn("text-xs font-semibold", selectedProd.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
+                            Stock actual: {selectedProd.stock} {selectedProd.unit}
+                          </span>
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            size="sm" 
+                            className="h-auto p-0 text-xs text-primary"
+                            onClick={() => {
+                              setQuickAdjustProduct(selectedProd);
+                              setQuickAdjustQty(1);
+                            }}
+                          >
+                            <Plus className="w-3 h-3 mr-0.5" /> Ajustar Stock
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <div className="w-24 space-y-2">
                       <Label>Cantidad</Label>
@@ -332,6 +400,7 @@ export default function DigitarValeFisicoPage() {
                         min="1" 
                         value={item.quantity}
                         onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value))}
+                        className={selectedProd && selectedProd.stock < item.quantity ? "border-destructive/50 ring-destructive/20 focus-visible:ring-destructive/50" : ""}
                         required
                       />
                     </div>
@@ -339,14 +408,15 @@ export default function DigitarValeFisicoPage() {
                       type="button" 
                       variant="ghost" 
                       size="icon" 
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0 mb-0.5"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0 mt-7"
                       onClick={() => handleRemoveItem(idx)}
                       disabled={items.length === 1}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                ))}
+                );
+                })}
               </div>
             </div>
 
@@ -403,6 +473,37 @@ export default function DigitarValeFisicoPage() {
             <Button variant="outline" onClick={() => setCreateWorkerOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateWorker} disabled={creatingWorker}>
               {creatingWorker ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Adjust Stock Dialog */}
+      <Dialog open={!!quickAdjustProduct} onOpenChange={(open) => !open && setQuickAdjustProduct(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Añadir Stock Rápido</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm font-semibold">{quickAdjustProduct?.name}</p>
+            <p className="text-sm text-muted-foreground -mt-3">Stock actual: {quickAdjustProduct?.stock} {quickAdjustProduct?.unit}</p>
+            
+            <div className="space-y-2 mt-2">
+              <Label>Cantidad a ingresar</Label>
+              <Input 
+                type="number" 
+                min={1} 
+                value={quickAdjustQty} 
+                onChange={e => setQuickAdjustQty(e.target.value === '' ? '' : parseInt(e.target.value))} 
+                className="text-lg font-bold"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickAdjustProduct(null)}>Cancelar</Button>
+            <Button onClick={handleQuickAdjust} disabled={adjusting || quickAdjustQty === '' || quickAdjustQty <= 0}>
+              {adjusting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Guardar
             </Button>
           </DialogFooter>

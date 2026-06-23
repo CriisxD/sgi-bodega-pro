@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Search, PackagePlus, Eye, FileEdit, Trash2, Save } from 'lucide-react';
+import { Loader2, Search, PackagePlus, Eye, FileEdit, Trash2, Save, Download } from 'lucide-react';
+import Papa from 'papaparse';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -160,6 +161,39 @@ export default function RecepcionesPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (filteredReceptions.length === 0) {
+      toast.error('No hay recepciones para exportar');
+      return;
+    }
+
+    const dataToExport = filteredReceptions.map(r => ({
+      Fecha: format(new Date(r.created_at), "dd/MM/yyyy HH:mm"),
+      Proveedor: r.supplier_name || r.supplier,
+      RUT: r.supplier_rut || '',
+      Tipo_Documento: docTypeLabel(r.document_type),
+      N_Documento: r.invoice || 'Sin doc.',
+      Fecha_Documento: r.invoice_date ? format(new Date(r.invoice_date + 'T12:00:00'), "dd/MM/yyyy") : '',
+      Recibido_Por: r.receiver?.full_name || '',
+      Neto: r.net_amount || 0,
+      IVA: r.iva_amount || 0,
+      Total: r.total_amount || 0,
+      Cantidad_Items: r.items?.length || 0,
+      Total_Unidades: r.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0
+    }));
+
+    const csvContent = Papa.unparse(dataToExport);
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Recepciones_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Historial exportado exitosamente');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -178,14 +212,20 @@ export default function RecepcionesPage() {
       <Card className="card-glow border-border/50">
         <CardHeader className="pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle className="text-base">Historial de Recepciones</CardTitle>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar proveedor o doc..."
-              className="pl-9 h-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar proveedor o doc..."
+                className="pl-9 h-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" className="h-9" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Exportar</span> CSV
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
