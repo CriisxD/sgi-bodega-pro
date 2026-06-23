@@ -110,7 +110,7 @@ export default function PetroleoPage() {
                 <Label htmlFor="vehicle_type">Maquinaria / Vehículo</Label>
                 <Select 
                   value={formData.vehicle_type} 
-                  onValueChange={(val: string) => setFormData({...formData, vehicle_type: val || ''})}
+                  onValueChange={(val: any) => setFormData({...formData, vehicle_type: val || ''})}
                   required
                 >
                   <SelectTrigger>
