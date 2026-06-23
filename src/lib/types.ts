@@ -37,6 +37,8 @@ export interface Worker {
   position: string;
   area: string;
   active: boolean;
+  is_external?: boolean;
+  company?: string;
   created_at: string;
 }
 

@@ -79,6 +79,7 @@ export default function TrabajadoresPage() {
   const [areaFilter, setAreaFilter] = usePersistentState<string>('trabajadores-areaFilter', 'all');
   const [positionFilter, setPositionFilter] = usePersistentState<string>('trabajadores-positionFilter', 'all');
   const [statusFilter, setStatusFilter] = usePersistentState<string>('trabajadores-statusFilter', 'all');
+  const [typeFilter, setTypeFilter] = usePersistentState<string>('trabajadores-typeFilter', 'all');
   const [viewMode, setViewMode] = usePersistentState<'table' | 'cards'>('trabajadores-viewMode', 'table');
   const [sortBy, setSortBy] = usePersistentState<string>('trabajadores-sortBy', 'name_asc');
 
@@ -89,6 +90,8 @@ export default function TrabajadoresPage() {
   const [formRut, setFormRut] = useState('');
   const [formArea, setFormArea] = useState('');
   const [formPosition, setFormPosition] = useState('');
+  const [formIsExternal, setFormIsExternal] = useState(false);
+  const [formCompany, setFormCompany] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Import modal states
@@ -282,7 +285,11 @@ export default function TrabajadoresPage() {
       if (statusFilter === 'active') matchesStatus = w.active;
       else if (statusFilter === 'inactive') matchesStatus = !w.active;
 
-      return matchesSearch && matchesArea && matchesPosition && matchesStatus;
+      let matchesType = true;
+      if (typeFilter === 'internal') matchesType = !w.is_external;
+      else if (typeFilter === 'external') matchesType = !!w.is_external;
+
+      return matchesSearch && matchesArea && matchesPosition && matchesStatus && matchesType;
     });
 
     switch (sortBy) {
@@ -304,7 +311,7 @@ export default function TrabajadoresPage() {
     }
 
     return result;
-  }, [workers, search, areaFilter, positionFilter, statusFilter, sortBy]);
+  }, [workers, search, areaFilter, positionFilter, statusFilter, typeFilter, sortBy]);
 
   const toggleWorkerStatus = async (id: string, currentStatus: boolean) => {
     try {
@@ -327,6 +334,8 @@ export default function TrabajadoresPage() {
     setFormRut('');
     setFormArea('');
     setFormPosition('');
+    setFormIsExternal(false);
+    setFormCompany('');
     setIsModalOpen(true);
   };
 
@@ -336,14 +345,17 @@ export default function TrabajadoresPage() {
     setFormRut(worker.rut);
     setFormArea(worker.area);
     setFormPosition(worker.position);
+    setFormIsExternal(worker.is_external || false);
+    setFormCompany(worker.company || '');
     setIsModalOpen(true);
   };
 
   const handleSave = async () => {
     if (!formName.trim()) return toast.error('El nombre es obligatorio');
     if (!formRut.trim()) return toast.error('El RUT es obligatorio');
-    if (!formArea.trim()) return toast.error('El área es obligatoria');
-    if (!formPosition.trim()) return toast.error('El cargo es obligatorio');
+    if (!formIsExternal && !formArea.trim()) return toast.error('El área es obligatoria');
+    if (formIsExternal && !formCompany.trim()) return toast.error('La empresa es obligatoria');
+    if (!formPosition.trim()) return toast.error('El cargo/rol es obligatorio');
 
     setSaving(true);
     try {
@@ -366,8 +378,10 @@ export default function TrabajadoresPage() {
           .update({
             name: formName.trim(),
             rut: formattedRut,
-            area: formArea.trim(),
+            area: formIsExternal ? 'Externo' : formArea.trim(),
             position: formPosition.trim(),
+            is_external: formIsExternal,
+            company: formIsExternal ? formCompany.trim() : null
           })
           .eq('id', editingWorker.id);
         if (error) throw error;
@@ -387,8 +401,11 @@ export default function TrabajadoresPage() {
           .insert({
             name: formName.trim(),
             rut: formattedRut,
-            area: formArea.trim(),
+            area: formIsExternal ? 'Externo' : formArea.trim(),
             position: formPosition.trim(),
+            is_external: formIsExternal,
+            company: formIsExternal ? formCompany.trim() : null,
+            active: true
           });
         if (error) throw error;
         toast.success('Trabajador creado exitosamente');
@@ -735,6 +752,24 @@ export default function TrabajadoresPage() {
                 </Select>
               </div>
 
+              {/* Filter Type */}
+              <div className="w-[120px]">
+                <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val || 'all')}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Tipo">
+                      {typeFilter === 'all' && 'Ambos'}
+                      {typeFilter === 'internal' && 'Internos'}
+                      {typeFilter === 'external' && 'Externos'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Ambos</SelectItem>
+                    <SelectItem value="internal">Internos</SelectItem>
+                    <SelectItem value="external">Externos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Sort By */}
               <div className="w-[150px]">
                 <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name_asc')}>
@@ -863,9 +898,18 @@ export default function TrabajadoresPage() {
                           onCheckedChange={() => toggleSelect(worker.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-semibold text-foreground">{worker.name}</TableCell>
+                      <TableCell className="font-semibold text-foreground">
+                        {worker.name}
+                        {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0">Externo</Badge>}
+                      </TableCell>
                       <TableCell className="text-muted-foreground font-mono text-xs">{worker.rut}</TableCell>
-                      <TableCell>{worker.area}</TableCell>
+                      <TableCell>
+                        {worker.is_external ? (
+                          <span className="text-muted-foreground">{worker.company}</span>
+                        ) : (
+                          worker.area
+                        )}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{worker.position}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={worker.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-muted/50 text-muted-foreground border-border'}>
@@ -931,11 +975,11 @@ export default function TrabajadoresPage() {
 
                   <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t border-border/50">
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Área</span>
-                      <span className="font-medium text-foreground">{worker.area}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">{worker.is_external ? 'Empresa' : 'Área'}</span>
+                      <span className="font-medium text-foreground">{worker.is_external ? worker.company : worker.area}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Cargo</span>
+                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Cargo / Rol</span>
                       <span className="font-medium text-foreground">{worker.position}</span>
                     </div>
                   </div>
@@ -1007,24 +1051,51 @@ export default function TrabajadoresPage() {
               </div>
             </div>
 
+            <div className="flex items-center space-x-2 py-2">
+              <Checkbox 
+                id="isExternal" 
+                checked={formIsExternal} 
+                onCheckedChange={(checked) => {
+                  setFormIsExternal(!!checked);
+                  if (!!checked) {
+                    setFormArea('Externo');
+                  } else {
+                    setFormArea('');
+                  }
+                }} 
+              />
+              <Label htmlFor="isExternal" className="cursor-pointer font-medium text-amber-500">¿Es personal externo / contratista?</Label>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
+              {!formIsExternal ? (
+                <div className="space-y-2">
+                  <Label>Área <span className="text-destructive">*</span></Label>
+                  <Input
+                    list="worker-areas"
+                    placeholder="Ej. Producción, Mantención..."
+                    value={formArea}
+                    onChange={(e) => setFormArea(e.target.value)}
+                  />
+                  <datalist id="worker-areas">
+                    {uniqueAreas.map(a => <option key={a} value={a} />)}
+                  </datalist>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Empresa Externa <span className="text-destructive">*</span></Label>
+                  <Input
+                    placeholder="Ej. Contratistas XYZ SpA"
+                    value={formCompany}
+                    onChange={(e) => setFormCompany(e.target.value)}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label>Área <span className="text-destructive">*</span></Label>
-                <Input
-                  list="worker-areas"
-                  placeholder="Ej. Producción, Mantención..."
-                  value={formArea}
-                  onChange={(e) => setFormArea(e.target.value)}
-                />
-                <datalist id="worker-areas">
-                  {uniqueAreas.map(a => <option key={a} value={a} />)}
-                </datalist>
-              </div>
-              <div className="space-y-2">
-                <Label>Cargo <span className="text-destructive">*</span></Label>
+                <Label>Cargo / Rol <span className="text-destructive">*</span></Label>
                 <Input
                   list="worker-positions"
-                  placeholder="Ej. Operador, Técnico..."
+                  placeholder="Ej. Operador, Técnico, Visitante..."
                   value={formPosition}
                   onChange={(e) => setFormPosition(e.target.value)}
                 />

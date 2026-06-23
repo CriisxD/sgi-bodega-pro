@@ -69,6 +69,11 @@ export default function NuevoValePage() {
   const [quickAdjustQty, setQuickAdjustQty] = useState<number | ''>(1);
   const [adjusting, setAdjusting] = useState(false);
 
+  // Fast Create Worker
+  const [createWorkerOpen, setCreateWorkerOpen] = useState(false);
+  const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '', is_external: false, company: '' });
+  const [creatingWorker, setCreatingWorker] = useState(false);
+
   const scrollToTop = () => {
     setTimeout(() => {
       cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -131,6 +136,35 @@ export default function NuevoValePage() {
     const search = workerSearch.toLowerCase();
     return workers.filter((w) => w.name.toLowerCase().includes(search) || w.rut.toLowerCase().includes(search));
   }, [workers, workerSearch]);
+
+  const handleCreateWorker = async () => {
+    if (!newWorkerData.name || !newWorkerData.rut) return toast.error('Nombre y RUT son obligatorios');
+    if (newWorkerData.is_external && !newWorkerData.company) return toast.error('La empresa es obligatoria para externos');
+    setCreatingWorker(true);
+    try {
+      const { data, error } = await supabase.from('workers').insert({
+        name: newWorkerData.name,
+        rut: newWorkerData.rut,
+        area: newWorkerData.is_external ? 'Externo' : (newWorkerData.area || 'General'),
+        position: newWorkerData.is_external ? 'Contratista/Visita' : 'Operador',
+        is_external: newWorkerData.is_external,
+        company: newWorkerData.is_external ? newWorkerData.company : null,
+        active: true
+      }).select().single();
+      
+      if (error) throw error;
+      
+      setWorkers([...workers, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setSelectedWorkers([...selectedWorkers, data.id]);
+      setCreateWorkerOpen(false);
+      setNewWorkerData({ name: '', rut: '', area: '', is_external: false, company: '' });
+      toast.success('Trabajador creado y seleccionado');
+    } catch (e: any) {
+      toast.error('Error al crear trabajador: ' + e.message);
+    } finally {
+      setCreatingWorker(false);
+    }
+  };
 
   const addToCart = (product: Product) => {
     const exists = cart.find((c) => c.product.id === product.id);
@@ -351,16 +385,27 @@ export default function NuevoValePage() {
               <p className="text-center text-sm text-muted-foreground">Puedes seleccionar varios para un vale grupal</p>
             </CardHeader>
             <CardContent className="space-y-4 py-4 border-t border-border/10 flex-1 flex flex-col min-h-0">
-              <div className="relative shrink-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre o RUT..."
-                  className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
-                  value={workerSearch}
-                  onChange={(e) => setWorkerSearch(e.target.value)}
-                  onBlur={scrollToTop}
-                  autoFocus
-                />
+              <div className="flex gap-2 shrink-0">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nombre o RUT..."
+                    className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
+                    value={workerSearch}
+                    onChange={(e) => setWorkerSearch(e.target.value)}
+                    onBlur={scrollToTop}
+                    autoFocus
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="h-14 px-4 rounded-xl flex items-center justify-center border-dashed border-2 hover:border-primary/50 hover:bg-primary/5 transition-colors whitespace-nowrap"
+                  onClick={() => setCreateWorkerOpen(true)}
+                >
+                  <Plus className="w-5 h-5 mr-2 text-primary" />
+                  <span className="hidden sm:inline font-medium">Nuevo</span>
+                </Button>
               </div>
               <div className="grid gap-3 flex-1 overflow-y-auto pr-1 pb-2">
                 {filteredWorkers.map((worker) => (
@@ -380,9 +425,12 @@ export default function NuevoValePage() {
                     }`}
                   >
                     <div>
-                      <p className="font-bold">{worker.name}</p>
+                      <p className="font-bold text-foreground">
+                        {worker.name}
+                        {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0 bg-amber-500/20 text-amber-600 border-amber-500/30">Externo</Badge>}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        <span className="font-mono">{worker.rut}</span> • {worker.area} • {worker.position}
+                        <span className="font-mono">{worker.rut}</span> • {worker.is_external ? worker.company : worker.area} • {worker.position}
                       </p>
                     </div>
                     {selectedWorkers.includes(worker.id) && (
@@ -620,6 +668,70 @@ export default function NuevoValePage() {
             <Button variant="outline" onClick={() => setQuickAdjustProduct(null)}>Cancelar</Button>
             <Button onClick={handleQuickAdjust} disabled={adjusting || quickAdjustQty === '' || quickAdjustQty <= 0}>
               {adjusting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fast Create Worker Dialog */}
+      <Dialog open={createWorkerOpen} onOpenChange={setCreateWorkerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Trabajador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nombre Completo</Label>
+              <Input 
+                value={newWorkerData.name} 
+                onChange={e => setNewWorkerData({...newWorkerData, name: e.target.value})} 
+                placeholder="Ej. Juan Pérez" 
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>RUT</Label>
+              <Input 
+                value={newWorkerData.rut} 
+                onChange={e => setNewWorkerData({...newWorkerData, rut: e.target.value})} 
+                placeholder="12.345.678-9" 
+              />
+            </div>
+            <div className="flex items-center space-x-2 py-2">
+              <input 
+                type="checkbox"
+                id="isExternalFast" 
+                checked={newWorkerData.is_external} 
+                onChange={(e) => setNewWorkerData({...newWorkerData, is_external: e.target.checked})} 
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <Label htmlFor="isExternalFast" className="cursor-pointer text-amber-500">Es personal externo / contratista</Label>
+            </div>
+            {!newWorkerData.is_external ? (
+              <div className="space-y-2">
+                <Label>Área / Especialidad</Label>
+                <Input 
+                  value={newWorkerData.area} 
+                  onChange={e => setNewWorkerData({...newWorkerData, area: e.target.value})} 
+                  placeholder="Ej. Carpintería, Maestranza..." 
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Empresa Externa</Label>
+                <Input 
+                  value={newWorkerData.company} 
+                  onChange={e => setNewWorkerData({...newWorkerData, company: e.target.value})} 
+                  placeholder="Ej. Contratistas XYZ SpA" 
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateWorkerOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateWorker} disabled={creatingWorker}>
+              {creatingWorker ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Guardar
             </Button>
           </DialogFooter>

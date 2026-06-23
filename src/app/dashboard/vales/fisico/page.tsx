@@ -36,7 +36,7 @@ export default function DigitarValeFisicoPage() {
 
   // Fast Create Worker state
   const [createWorkerOpen, setCreateWorkerOpen] = useState(false);
-  const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '' });
+  const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '', is_external: false, company: '' });
   const [creatingWorker, setCreatingWorker] = useState(false);
 
   // Quick Stock Adjust
@@ -59,7 +59,7 @@ export default function DigitarValeFisicoPage() {
 
   const filteredProducts = products.filter(p => {
     if (valeType === 'epp') return p.category?.type === 'epp';
-    return p.category?.type === 'material' || p.category?.type === 'consumible' || !p.category;
+    return ['material', 'insumo', 'herramienta', 'consumible'].includes(p.category?.type?.toLowerCase() || '') || !p.category;
   });
 
   const handleAddItem = () => {
@@ -78,12 +78,16 @@ export default function DigitarValeFisicoPage() {
 
   const handleCreateWorker = async () => {
     if (!newWorkerData.name || !newWorkerData.rut) return toast.error('Nombre y RUT son obligatorios');
+    if (newWorkerData.is_external && !newWorkerData.company) return toast.error('La empresa es obligatoria para externos');
     setCreatingWorker(true);
     try {
       const { data, error } = await supabase.from('workers').insert({
         name: newWorkerData.name,
         rut: newWorkerData.rut,
-        area: newWorkerData.area || 'General',
+        area: newWorkerData.is_external ? 'Externo' : (newWorkerData.area || 'General'),
+        position: newWorkerData.is_external ? 'Contratista/Visita' : 'Operador',
+        is_external: newWorkerData.is_external,
+        company: newWorkerData.is_external ? newWorkerData.company : null,
         active: true
       }).select().single();
       
@@ -92,7 +96,7 @@ export default function DigitarValeFisicoPage() {
       setWorkers([...workers, data].sort((a, b) => a.name.localeCompare(b.name)));
       setWorkerId(data.id);
       setCreateWorkerOpen(false);
-      setNewWorkerData({ name: '', rut: '', area: '' });
+      setNewWorkerData({ name: '', rut: '', area: '', is_external: false, company: '' });
       toast.success('Trabajador creado y seleccionado');
     } catch (e: any) {
       toast.error('Error al crear trabajador: ' + e.message);
@@ -272,6 +276,7 @@ export default function DigitarValeFisicoPage() {
                                   )}
                                 />
                                 {worker.name} ({worker.rut})
+                                {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
                               </CommandItem>
                             ))}
                           </CommandGroup>
@@ -450,6 +455,7 @@ export default function DigitarValeFisicoPage() {
                 value={newWorkerData.name} 
                 onChange={e => setNewWorkerData({...newWorkerData, name: e.target.value})} 
                 placeholder="Ej. Juan Pérez" 
+                autoFocus
               />
             </div>
             <div className="space-y-2">
@@ -460,14 +466,35 @@ export default function DigitarValeFisicoPage() {
                 placeholder="12.345.678-9" 
               />
             </div>
-            <div className="space-y-2">
-              <Label>Área / Especialidad</Label>
-              <Input 
-                value={newWorkerData.area} 
-                onChange={e => setNewWorkerData({...newWorkerData, area: e.target.value})} 
-                placeholder="Ej. Carpintería, Maestranza..." 
+            <div className="flex items-center space-x-2 py-2">
+              <input 
+                type="checkbox"
+                id="isExternalFastFisico" 
+                checked={newWorkerData.is_external} 
+                onChange={(e) => setNewWorkerData({...newWorkerData, is_external: e.target.checked})} 
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
+              <Label htmlFor="isExternalFastFisico" className="cursor-pointer text-amber-500">Es personal externo / contratista</Label>
             </div>
+            {!newWorkerData.is_external ? (
+              <div className="space-y-2">
+                <Label>Área / Especialidad</Label>
+                <Input 
+                  value={newWorkerData.area} 
+                  onChange={e => setNewWorkerData({...newWorkerData, area: e.target.value})} 
+                  placeholder="Ej. Carpintería, Maestranza..." 
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Empresa Externa</Label>
+                <Input 
+                  value={newWorkerData.company} 
+                  onChange={e => setNewWorkerData({...newWorkerData, company: e.target.value})} 
+                  placeholder="Ej. Contratistas XYZ SpA" 
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateWorkerOpen(false)}>Cancelar</Button>
