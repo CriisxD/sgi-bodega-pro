@@ -202,18 +202,12 @@ export default function DigitarValeFisicoPage() {
                 <Label>Trabajador (Receptor)</Label>
                 <div className="flex gap-2">
                   <Popover open={openWorker} onOpenChange={setOpenWorker}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openWorker}
-                        className="w-full justify-between"
-                      >
+                    {/* @ts-ignore Base UI render prop */}
+                    <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between" />}>
                         {workerId
                           ? workers.find((w) => w.id === workerId)?.name
                           : "Buscar trabajador..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0">
                       <Command>
@@ -291,17 +285,12 @@ export default function DigitarValeFisicoPage() {
                         open={openProducts[idx] || false} 
                         onOpenChange={(val) => setOpenProducts({...openProducts, [idx]: val})}
                       >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between font-normal"
-                          >
+                        {/* @ts-ignore Base UI render prop */}
+                        <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between font-normal" />}>
                             {item.product_id
                               ? products.find((p) => p.id === item.product_id)?.name
                               : "Buscar producto en bodega..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[400px] p-0">
                           <Command>
