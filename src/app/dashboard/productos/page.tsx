@@ -411,7 +411,8 @@ export default function ProductosPage() {
               continue;
             }
 
-            const stock = parseInt(row.Stock_Inicial) || 0;
+            const stockRaw = row.Stock_Actual !== undefined ? row.Stock_Actual : row.Stock_Inicial;
+            const stock = parseInt(stockRaw) || 0;
             const minStock = parseInt(row.Stock_Minimo) || 0;
             const unit = row.Unidad?.trim()?.toLowerCase() || 'un';
 
