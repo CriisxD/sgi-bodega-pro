@@ -428,6 +428,34 @@ export default function ProductosPage() {
     setPreviewData(prev => prev.filter((_, i) => i !== index));
   };
 
+  const updatePreviewRow = (index: number, field: keyof ImportPreviewRow, value: any) => {
+    setPreviewData(prev => {
+      const newData = [...prev];
+      const row = { ...newData[index], [field]: value };
+      
+      if (field === 'name') {
+        const nameStr = value as string;
+        if (!nameStr.trim()) {
+           row.status = 'error';
+           row.errorMessage = 'Nombre vacío';
+        } else {
+           row.errorMessage = undefined;
+           const existingProd = products.find(p => p.name.toLowerCase() === nameStr.toLowerCase());
+           if (existingProd) {
+              row.status = 'update';
+              row.productId = existingProd.id;
+           } else {
+              row.status = 'new';
+              row.productId = undefined;
+           }
+        }
+      }
+      
+      newData[index] = row;
+      return newData;
+    });
+  };
+
   const confirmImport = async () => {
     if (previewData.length === 0) return;
     setImporting(true);
@@ -864,7 +892,7 @@ export default function ProductosPage() {
           setPreviewData([]);
         }
       }}>
-        <DialogContent className={showPreview ? "max-w-4xl" : "max-w-md"}>
+        <DialogContent className={showPreview ? "max-w-[95vw] sm:max-w-4xl max-h-[90vh]" : "max-w-md"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5 text-primary" /> 
@@ -942,45 +970,74 @@ export default function ProductosPage() {
                 </Badge>
               </div>
               
-              <div className="border rounded-md max-h-[50vh] overflow-y-auto">
-                <Table>
-                  <TableHeader className="bg-muted/50 sticky top-0">
-                    <TableRow>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Producto</TableHead>
-                      <TableHead className="text-right">Stock</TableHead>
-                      <TableHead className="text-right">Mín.</TableHead>
-                      <TableHead>Und.</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewData.map((row, i) => (
-                      <TableRow key={i} className={row.status === 'error' ? 'bg-destructive/5' : ''}>
-                        <TableCell>
-                           {row.status === 'new' && <Badge className="bg-success hover:bg-success/80">Crear</Badge>}
-                           {row.status === 'update' && <Badge className="bg-warning hover:bg-warning/80 text-warning-foreground">Actualizar</Badge>}
-                           {row.status === 'error' && <Badge variant="destructive">Error</Badge>}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                           {row.name || row.originalName}
-                           {row.errorMessage && <p className="text-xs text-destructive">{row.errorMessage}</p>}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">{row.stock}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{row.minStock}</TableCell>
-                        <TableCell className="text-muted-foreground">{row.unit}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removePreviewRow(i)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
+              <div className="border rounded-md overflow-hidden flex-1 min-h-0 relative">
+                <div className="max-h-[60vh] overflow-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                      <TableRow>
+                        <TableHead className="w-[100px]">Estado</TableHead>
+                        <TableHead>Producto</TableHead>
+                        <TableHead className="w-[100px] text-right">Stock</TableHead>
+                        <TableHead className="w-[100px] text-right">Mín.</TableHead>
+                        <TableHead className="w-[100px]">Und.</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
-                    ))}
-                    {previewData.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center py-4">No hay datos que procesar</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {previewData.map((row, i) => (
+                        <TableRow key={i} className={row.status === 'error' ? 'bg-destructive/5' : ''}>
+                          <TableCell>
+                             {row.status === 'new' && <Badge className="bg-success hover:bg-success/80">Crear</Badge>}
+                             {row.status === 'update' && <Badge className="bg-warning hover:bg-warning/80 text-warning-foreground">Actualizar</Badge>}
+                             {row.status === 'error' && <Badge variant="destructive">Error</Badge>}
+                          </TableCell>
+                          <TableCell className="p-1">
+                             <Input 
+                               className="h-8 border-transparent hover:border-border focus:border-primary px-2 shadow-none" 
+                               value={row.name} 
+                               onChange={(e) => updatePreviewRow(i, 'name', e.target.value)}
+                               placeholder="Nombre del producto"
+                             />
+                             {row.errorMessage && <p className="text-xs text-destructive px-2 mt-0.5">{row.errorMessage}</p>}
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input 
+                               type="number"
+                               min="0"
+                               className="h-8 text-right font-bold border-transparent hover:border-border focus:border-primary px-2 shadow-none" 
+                               value={row.stock} 
+                               onChange={(e) => updatePreviewRow(i, 'stock', parseInt(e.target.value) || 0)}
+                             />
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input 
+                               type="number"
+                               min="0"
+                               className="h-8 text-right text-muted-foreground border-transparent hover:border-border focus:border-primary px-2 shadow-none" 
+                               value={row.minStock} 
+                               onChange={(e) => updatePreviewRow(i, 'minStock', parseInt(e.target.value) || 0)}
+                             />
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input 
+                               className="h-8 text-muted-foreground border-transparent hover:border-border focus:border-primary px-2 shadow-none" 
+                               value={row.unit} 
+                               onChange={(e) => updatePreviewRow(i, 'unit', e.target.value)}
+                             />
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removePreviewRow(i)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {previewData.length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center py-4">No hay datos que procesar</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
               
               <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between w-full">
