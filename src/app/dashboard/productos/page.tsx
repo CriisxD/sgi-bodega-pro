@@ -32,6 +32,17 @@ import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download
 import type { Product, Category, ProductCategory } from '@/lib/types';
 import { toast } from 'sonner';
 
+type ImportPreviewRow = {
+  originalName: string;
+  name: string;
+  stock: number;
+  minStock: number;
+  unit: string;
+  status: 'new' | 'update' | 'error';
+  productId?: string;
+  errorMessage?: string;
+};
+
 export default function ProductosPage() {
   const supabase = createClient();
   const { profile } = useAuth();
@@ -58,6 +69,8 @@ export default function ProductosPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importCategoryId, setImportCategoryId] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<ImportPreviewRow[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Category modal states
@@ -348,19 +361,23 @@ export default function ProductosPage() {
           const rows = results.data as any[];
           if (rows.length === 0) throw new Error('El archivo está vacío');
 
-          let successCount = 0;
-          let updateCount = 0;
-          let errorCount = 0;
+          const newPreviewData: ImportPreviewRow[] = [];
 
           for (const row of rows) {
             const name = row.Nombre?.trim();
             
             if (!name) {
-              errorCount++;
+              newPreviewData.push({
+                originalName: 'Fila sin nombre',
+                name: '',
+                stock: 0,
+                minStock: 0,
+                unit: '',
+                status: 'error',
+                errorMessage: 'Nombre vacío'
+              });
               continue;
             }
-
-            const catId = importCategoryId;
 
             const stock = parseInt(row.Stock_Inicial) || 0;
             const minStock = parseInt(row.Stock_Minimo) || 0;
@@ -369,41 +386,30 @@ export default function ProductosPage() {
             const existingProd = products.find(p => p.name.toLowerCase() === name.toLowerCase());
 
             if (existingProd) {
-              // Update existing
-              const { error: upErr } = await supabase
-                .from('products')
-                .update({
-                  category_id: catId,
-                  stock: stock, // Forcing stock update from import
-                  min_stock: minStock,
-                  unit: unit,
-                })
-                .eq('id', existingProd.id);
-              
-              if (upErr) errorCount++;
-              else updateCount++;
+              newPreviewData.push({
+                originalName: name,
+                name: existingProd.name,
+                stock,
+                minStock,
+                unit,
+                status: 'update',
+                productId: existingProd.id
+              });
             } else {
-              // Insert new
-              const { error: inErr } = await supabase
-                .from('products')
-                .insert({
-                  name,
-                  category_id: catId,
-                  stock: stock,
-                  min_stock: minStock,
-                  unit: unit,
-                });
-                
-              if (inErr) errorCount++;
-              else successCount++;
+              newPreviewData.push({
+                originalName: name,
+                name,
+                stock,
+                minStock,
+                unit,
+                status: 'new'
+              });
             }
           }
 
-          toast.success(`Importación finalizada. Creados: ${successCount}, Actualizados: ${updateCount}, Errores: ${errorCount}`);
-          setIsImportModalOpen(false);
-          await cleanupCategories();
-          fetchProducts();
-          fetchCategories();
+          setPreviewData(newPreviewData);
+          setShowPreview(true);
+
         } catch (err: any) {
           toast.error('Error al procesar el archivo: ' + err.message);
         } finally {
@@ -416,6 +422,68 @@ export default function ProductosPage() {
         setImporting(false);
       }
     });
+  };
+
+  const removePreviewRow = (index: number) => {
+    setPreviewData(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const confirmImport = async () => {
+    if (previewData.length === 0) return;
+    setImporting(true);
+    
+    let successCount = 0;
+    let updateCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (const row of previewData) {
+        if (row.status === 'error') {
+           errorCount++;
+           continue;
+        }
+
+        if (row.status === 'update' && row.productId) {
+          const { error } = await supabase
+            .from('products')
+            .update({
+              category_id: importCategoryId,
+              stock: row.stock,
+              min_stock: row.minStock,
+              unit: row.unit,
+            })
+            .eq('id', row.productId);
+          
+          if (error) errorCount++;
+          else updateCount++;
+        } else if (row.status === 'new') {
+          const { error } = await supabase
+            .from('products')
+            .insert({
+              name: row.name,
+              category_id: importCategoryId,
+              stock: row.stock,
+              min_stock: row.minStock,
+              unit: row.unit,
+            });
+            
+          if (error) errorCount++;
+          else successCount++;
+        }
+      }
+
+      toast.success(`Importación finalizada. Creados: ${successCount}, Actualizados: ${updateCount}, Errores: ${errorCount}`);
+      setIsImportModalOpen(false);
+      setShowPreview(false);
+      setPreviewData([]);
+      await cleanupCategories();
+      fetchProducts();
+      fetchCategories();
+    } catch (e: any) {
+       toast.error('Error durante la importación: ' + e.message);
+    } finally {
+       setImporting(false);
+    }
   };
 
   const cleanupCategories = async () => {
@@ -789,69 +857,143 @@ export default function ProductosPage() {
         </DialogContent>
       </Dialog>
       {/* Import Modal */}
-      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog open={isImportModalOpen} onOpenChange={(open) => {
+        setIsImportModalOpen(open);
+        if (!open) {
+          setShowPreview(false);
+          setPreviewData([]);
+        }
+      }}>
+        <DialogContent className={showPreview ? "max-w-4xl" : "max-w-md"}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5 text-primary" /> Importación Masiva
+              <Upload className="w-5 h-5 text-primary" /> 
+              {showPreview ? 'Vista Previa de Importación' : 'Importación Masiva'}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            <div className="bg-muted/50 p-4 rounded-lg border border-border text-sm space-y-3">
-              <p>Para asegurar una importación exitosa, sigue estos pasos:</p>
-              <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-                <li>Selecciona la categoría destino.</li>
-                <li>Descarga la plantilla CSV.</li>
-                <li>Llénala con tus productos (en Excel, usa "Guardar como CSV").</li>
-                <li>Sube el archivo aquí.</li>
-              </ol>
-              <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-                Nota: Todos los productos del CSV se asignarán a la categoría seleccionada. Si el producto ya existe, se actualizará su stock.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Categoría Destino</Label>
-              <Select value={importCategoryId} onValueChange={(val) => setImportCategoryId(val || '')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona una categoría...">
-                    {categories.find(c => c.id === importCategoryId)?.name || 'Selecciona una categoría...'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button variant="outline" className="w-full" onClick={handleDownloadTemplate}>
-              <Download className="w-4 h-4 mr-2" /> Descargar Plantilla CSV
-            </Button>
-
-            <div className="space-y-2">
-              <Label>Subir Archivo CSV Lleno</Label>
-              <div className="flex items-center gap-2">
-                <Input 
-                  type="file" 
-                  accept=".csv" 
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  disabled={importing || !importCategoryId}
-                />
+          {!showPreview ? (
+            <div className="space-y-6 py-4">
+              <div className="bg-muted/50 p-4 rounded-lg border border-border text-sm space-y-3">
+                <p>Para asegurar una importación exitosa, sigue estos pasos:</p>
+                <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                  <li>Selecciona la categoría destino.</li>
+                  <li>Descarga la plantilla CSV.</li>
+                  <li>Llénala con tus productos (en Excel, usa "Guardar como CSV").</li>
+                  <li>Sube el archivo aquí.</li>
+                </ol>
+                <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+                  Nota: Al subir, verás una previsualización para confirmar antes de guardar en el sistema.
+                </p>
               </div>
-              {!importCategoryId && (
-                <p className="text-xs text-amber-500">⚠ Selecciona una categoría primero</p>
-              )}
-              {importing && (
-                <div className="flex items-center gap-2 text-sm text-primary mt-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Procesando importación...
+
+              <div className="space-y-2">
+                <Label>Categoría Destino</Label>
+                <Select value={importCategoryId} onValueChange={(val) => setImportCategoryId(val || '')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una categoría...">
+                      {categories.find(c => c.id === importCategoryId)?.name || 'Selecciona una categoría...'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={handleDownloadTemplate}>
+                <Download className="w-4 h-4 mr-2" /> Descargar Plantilla CSV
+              </Button>
+
+              <div className="space-y-2">
+                <Label>Subir Archivo CSV Lleno</Label>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    type="file" 
+                    accept=".csv" 
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    disabled={importing || !importCategoryId}
+                  />
                 </div>
-              )}
+                {!importCategoryId && (
+                  <p className="text-xs text-amber-500">⚠ Selecciona una categoría primero</p>
+                )}
+                {importing && (
+                  <div className="flex items-center gap-2 text-sm text-primary mt-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Procesando importación...
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="flex flex-wrap gap-4 mb-2">
+                <Badge variant="outline" className="bg-success/10 text-success border-success/20 py-1">
+                  {previewData.filter(r => r.status === 'new').length} Nuevos
+                </Badge>
+                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 py-1">
+                  {previewData.filter(r => r.status === 'update').length} A Actualizar
+                </Badge>
+                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 py-1">
+                  {previewData.filter(r => r.status === 'error').length} Errores
+                </Badge>
+              </div>
+              
+              <div className="border rounded-md max-h-[50vh] overflow-y-auto">
+                <Table>
+                  <TableHeader className="bg-muted/50 sticky top-0">
+                    <TableRow>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="text-right">Stock</TableHead>
+                      <TableHead className="text-right">Mín.</TableHead>
+                      <TableHead>Und.</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {previewData.map((row, i) => (
+                      <TableRow key={i} className={row.status === 'error' ? 'bg-destructive/5' : ''}>
+                        <TableCell>
+                           {row.status === 'new' && <Badge className="bg-success hover:bg-success/80">Crear</Badge>}
+                           {row.status === 'update' && <Badge className="bg-warning hover:bg-warning/80 text-warning-foreground">Actualizar</Badge>}
+                           {row.status === 'error' && <Badge variant="destructive">Error</Badge>}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                           {row.name || row.originalName}
+                           {row.errorMessage && <p className="text-xs text-destructive">{row.errorMessage}</p>}
+                        </TableCell>
+                        <TableCell className="text-right font-bold">{row.stock}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{row.minStock}</TableCell>
+                        <TableCell className="text-muted-foreground">{row.unit}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removePreviewRow(i)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {previewData.length === 0 && (
+                      <TableRow><TableCell colSpan={6} className="text-center py-4">No hay datos que procesar</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between w-full">
+                 <Button variant="outline" onClick={() => { setShowPreview(false); setPreviewData([]); }}>
+                   Descartar y Volver
+                 </Button>
+                 <Button onClick={confirmImport} disabled={importing || previewData.length === 0}>
+                   {importing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                   Confirmar Importación
+                 </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
