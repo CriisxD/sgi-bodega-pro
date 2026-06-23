@@ -60,12 +60,12 @@ export default function PetroleoPage() {
     try {
       const { data: records, error: err1 } = await supabase
         .from('fuel_records')
-        .select('*, bodeguero:bodeguero_id(first_name, last_name)')
+        .select('*, bodeguero:bodeguero_id(full_name)')
         .order('created_at', { ascending: false });
       
       const { data: receptions, error: err2 } = await supabase
         .from('fuel_receptions')
-        .select('*, bodeguero:bodeguero_id(first_name, last_name)')
+        .select('*, bodeguero:bodeguero_id(full_name)')
         .order('created_at', { ascending: false });
 
       if (err1) throw err1;
@@ -190,7 +190,7 @@ export default function PetroleoPage() {
         Receptor: r.receiver_name,
         RUT: r.receiver_rut,
         Documento: '',
-        Responsable_Bodega: r.bodeguero ? `${r.bodeguero.first_name} ${r.bodeguero.last_name}` : ''
+        Responsable_Bodega: r.bodeguero ? r.bodeguero.full_name : ''
       })),
       ...fuelReceptions.map(r => ({
         Fecha: format(new Date(r.created_at), 'dd/MM/yyyy HH:mm'),
@@ -200,7 +200,7 @@ export default function PetroleoPage() {
         Receptor: 'Estanque Principal',
         RUT: '',
         Documento: r.document_number || '',
-        Responsable_Bodega: r.bodeguero ? `${r.bodeguero.first_name} ${r.bodeguero.last_name}` : ''
+        Responsable_Bodega: r.bodeguero ? r.bodeguero.full_name : ''
       }))
     ].sort((a, b) => new Date(b.Fecha.split(' ')[0].split('/').reverse().join('-')).getTime() - new Date(a.Fecha.split(' ')[0].split('/').reverse().join('-')).getTime());
 
