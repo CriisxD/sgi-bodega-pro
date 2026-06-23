@@ -59,8 +59,8 @@ export default function ProductosPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formName, setFormName] = useState('');
   const [formCategoryId, setFormCategoryId] = useState('');
-  const [formStock, setFormStock] = useState(0);
-  const [formMinStock, setFormMinStock] = useState(0);
+  const [formStock, setFormStock] = useState<number | string>(0);
+  const [formMinStock, setFormMinStock] = useState<number | string>(0);
   const [formUnit, setFormUnit] = useState('un');
   const [formBrand, setFormBrand] = useState('');
   const [saving, setSaving] = useState(false);
@@ -275,11 +275,14 @@ export default function ProductosPage() {
     if (!formName.trim()) return toast.error('El nombre es obligatorio');
     if (!formCategoryId) return toast.error('Selecciona una categoría');
 
+    const stockToSave = typeof formStock === 'string' ? (parseInt(formStock, 10) || 0) : formStock;
+    const minStockToSave = typeof formMinStock === 'string' ? (parseInt(formMinStock, 10) || 0) : formMinStock;
+
     setSaving(true);
     try {
       if (editingProduct) {
         // Find stock difference
-        const stockDiff = formStock - editingProduct.stock;
+        const stockDiff = stockToSave - editingProduct.stock;
 
         // Update
         const { error } = await supabase
@@ -288,8 +291,8 @@ export default function ProductosPage() {
             name: formName.trim(),
             brand: formBrand.trim() || null,
             category_id: formCategoryId,
-            stock: formStock,
-            min_stock: formMinStock,
+            stock: stockToSave,
+            min_stock: minStockToSave,
             unit: formUnit,
           })
           .eq('id', editingProduct.id);
@@ -315,8 +318,8 @@ export default function ProductosPage() {
             name: formName.trim(),
             brand: formBrand.trim() || null,
             category_id: formCategoryId,
-            stock: formStock,
-            min_stock: formMinStock,
+            stock: stockToSave,
+            min_stock: minStockToSave,
             unit: formUnit,
           });
         if (error) throw error;
@@ -868,7 +871,7 @@ export default function ProductosPage() {
                   type="number"
                   min="0"
                   value={formStock}
-                  onChange={(e) => setFormStock(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setFormStock(e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0))}
                 />
               </div>
               <div className="space-y-2">
@@ -877,7 +880,7 @@ export default function ProductosPage() {
                   type="number"
                   min="0"
                   value={formMinStock}
-                  onChange={(e) => setFormMinStock(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setFormMinStock(e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0))}
                 />
               </div>
               <div className="space-y-2">
