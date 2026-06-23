@@ -16,17 +16,20 @@ export default function PetroleoPage() {
   const { profile } = useAuth();
   const supabase = createClient();
   const sigCanvas = useRef<any>(null);
+  const sigBodegueroCanvas = useRef<any>(null);
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     receiver_name: '',
     receiver_rut: '',
     vehicle_type: '',
+    vehicle_other_type: '',
     liters: ''
   });
 
-  const clearSignature = () => {
+  const clearSignatures = () => {
     sigCanvas.current?.clear();
+    sigBodegueroCanvas.current?.clear();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,26 +40,36 @@ export default function PetroleoPage() {
       toast.error('Por favor, ingresa la firma del receptor.');
       return;
     }
+    if (sigBodegueroCanvas.current?.isEmpty()) {
+      toast.error('Por favor, ingresa la firma del bodeguero/emisor.');
+      return;
+    }
 
     setLoading(true);
 
     try {
       const signatureData = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+      const bodegueroSignatureData = sigBodegueroCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+      
+      const finalVehicleType = formData.vehicle_type === 'Otro' 
+        ? formData.vehicle_other_type 
+        : formData.vehicle_type;
 
       const { error } = await supabase.from('fuel_records').insert({
         bodeguero_id: profile.id,
         receiver_name: formData.receiver_name,
         receiver_rut: formData.receiver_rut,
-        vehicle_type: formData.vehicle_type,
+        vehicle_type: finalVehicleType,
         liters: parseFloat(formData.liters),
-        signature_data: signatureData
+        signature_data: signatureData,
+        bodeguero_signature_data: bodegueroSignatureData
       });
 
       if (error) throw error;
 
       toast.success('Carga de petróleo registrada exitosamente');
-      setFormData({ receiver_name: '', receiver_rut: '', vehicle_type: '', liters: '' });
-      clearSignature();
+      setFormData({ receiver_name: '', receiver_rut: '', vehicle_type: '', vehicle_other_type: '', liters: '' });
+      clearSignatures();
 
     } catch (error: any) {
       toast.error('Error al registrar carga: ' + error.message);
@@ -122,9 +135,19 @@ export default function PetroleoPage() {
                     <SelectItem value="Excavadora">Excavadora</SelectItem>
                     <SelectItem value="Generador">Generador</SelectItem>
                     <SelectItem value="Motoniveladora">Motoniveladora</SelectItem>
-                    <SelectItem value="Otro">Otro equipo</SelectItem>
+                    <SelectItem value="Otro">Otro equipo...</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {formData.vehicle_type === 'Otro' && (
+                  <Input
+                    className="mt-2"
+                    placeholder="Especifique el vehículo/máquina..."
+                    value={formData.vehicle_other_type}
+                    onChange={(e) => setFormData({...formData, vehicle_other_type: e.target.value})}
+                    required
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="liters">Litros Cargados</Label>
@@ -147,24 +170,46 @@ export default function PetroleoPage() {
               </div>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between">
-                <Label>Firma del Receptor</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={clearSignature} className="h-8 px-2 text-xs">
-                  <Eraser className="w-3 h-3 mr-1" />
-                  Borrar
-                </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Firma del Receptor</Label>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => sigCanvas.current?.clear()} className="h-8 px-2 text-xs">
+                    <Eraser className="w-3 h-3 mr-1" />
+                    Borrar
+                  </Button>
+                </div>
+                <div className="border border-border rounded-lg bg-white overflow-hidden" style={{ height: '200px' }}>
+                  <SignatureCanvas 
+                    ref={sigCanvas} 
+                    penColor="black"
+                    canvasProps={{ className: 'w-full h-full' }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Firma de quien recibe
+                </p>
               </div>
-              <div className="border border-border rounded-lg bg-white overflow-hidden" style={{ height: '200px' }}>
-                <SignatureCanvas 
-                  ref={sigCanvas} 
-                  penColor="black"
-                  canvasProps={{ className: 'w-full h-full' }}
-                />
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Firma del Bodeguero (Emisor)</Label>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => sigBodegueroCanvas.current?.clear()} className="h-8 px-2 text-xs">
+                    <Eraser className="w-3 h-3 mr-1" />
+                    Borrar
+                  </Button>
+                </div>
+                <div className="border border-border rounded-lg bg-white overflow-hidden" style={{ height: '200px' }}>
+                  <SignatureCanvas 
+                    ref={sigBodegueroCanvas} 
+                    penColor="black"
+                    canvasProps={{ className: 'w-full h-full' }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Firma de quien despacha
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Por favor, firme dentro del recuadro blanco para certificar la recepción del combustible.
-              </p>
             </div>
 
             <Button type="submit" className="w-full bg-warning hover:bg-warning/90 text-warning-foreground" disabled={loading}>
