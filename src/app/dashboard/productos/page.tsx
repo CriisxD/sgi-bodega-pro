@@ -762,7 +762,7 @@ export default function ProductosPage() {
                         {product.category?.name}
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        <span className={product.stock <= product.min_stock ? 'text-destructive' : 'text-success'}>
+                        <span className={(product.stock <= product.min_stock && product.min_stock > 0) ? 'text-destructive' : 'text-success'}>
                           {product.stock}
                         </span> {product.unit}
                       </TableCell>
