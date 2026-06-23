@@ -64,7 +64,7 @@ export default function NuevaRecepcionPage() {
   const [isNewProductOpen, setIsNewProductOpen] = useState(false);
   const [newProdName, setNewProdName] = useState('');
   const [newProdCat, setNewProdCat] = useState('');
-  const [newProdMinStock, setNewProdMinStock] = useState(0);
+  const [newProdMinStock, setNewProdMinStock] = useState<number | string>(0);
   const [newProdUnit, setNewProdUnit] = useState('un');
   const [newProdBrand, setNewProdBrand] = useState('');
 
@@ -122,8 +122,8 @@ export default function NuevaRecepcionPage() {
         brand: newProdBrand.trim() || null,
         category_id: newProdCat,
         stock: 0,
-        min_stock: newProdMinStock,
-        unit: newProdUnit
+        min_stock: newProdMinStock === '' ? 0 : (newProdMinStock as number),
+        unit: newProdUnit.trim() || 'un'
       }).select('*, category:categories(*)').single();
       
       if (error) throw error;
@@ -556,24 +556,27 @@ export default function NuevaRecepcionPage() {
                 <Input 
                   type="number" 
                   value={newProdMinStock} 
-                  onChange={e => setNewProdMinStock(parseInt(e.target.value) || 0)} 
+                  onChange={e => setNewProdMinStock(e.target.value === '' ? '' : (parseInt(e.target.value) || 0))} 
                 />
               </div>
               <div className="space-y-2">
                 <Label>Unidad</Label>
-                <Select value={newProdUnit} onValueChange={(val) => setNewProdUnit(val || 'un')}>
-                  <SelectTrigger>
-                    <SelectValue>
-                      {newProdUnit}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="un">un</SelectItem>
-                    <SelectItem value="par">par</SelectItem>
-                    <SelectItem value="mt">mt</SelectItem>
-                    <SelectItem value="kg">kg</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  list="unit-options"
+                  placeholder="Ej. un, caja, mt..."
+                  value={newProdUnit} 
+                  onChange={e => setNewProdUnit(e.target.value)} 
+                />
+                <datalist id="unit-options">
+                  <option value="un" />
+                  <option value="par" />
+                  <option value="mt" />
+                  <option value="kg" />
+                  <option value="lt" />
+                  <option value="rollo" />
+                  <option value="caja" />
+                  <option value="bolsa" />
+                </datalist>
               </div>
             </div>
           </div>

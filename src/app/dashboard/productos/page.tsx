@@ -886,28 +886,22 @@ export default function ProductosPage() {
               </div>
               <div className="space-y-2">
                 <Label>Unidad</Label>
-                <Select value={formUnit} onValueChange={(v) => setFormUnit(v || 'un')}>
-                  <SelectTrigger>
-                    <SelectValue>
-                      {formUnit === 'un' && 'un (Unidad)'}
-                      {formUnit === 'par' && 'par (Par)'}
-                      {formUnit === 'mt' && 'mt (Metro)'}
-                      {formUnit === 'kg' && 'kg (Kilo)'}
-                      {formUnit === 'lt' && 'lt (Litro)'}
-                      {formUnit === 'rollo' && 'rollo'}
-                      {formUnit === 'caja' && 'caja'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="un">un (Unidad)</SelectItem>
-                    <SelectItem value="par">par (Par)</SelectItem>
-                    <SelectItem value="mt">mt (Metro)</SelectItem>
-                    <SelectItem value="kg">kg (Kilo)</SelectItem>
-                    <SelectItem value="lt">lt (Litro)</SelectItem>
-                    <SelectItem value="rollo">rollo</SelectItem>
-                    <SelectItem value="caja">caja</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  list="unit-options-main"
+                  placeholder="Ej. un, caja, mt..."
+                  value={formUnit} 
+                  onChange={e => setFormUnit(e.target.value)} 
+                />
+                <datalist id="unit-options-main">
+                  <option value="un" />
+                  <option value="par" />
+                  <option value="mt" />
+                  <option value="kg" />
+                  <option value="lt" />
+                  <option value="rollo" />
+                  <option value="caja" />
+                  <option value="bolsa" />
+                </datalist>
               </div>
             </div>
           </div>
