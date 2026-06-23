@@ -23,6 +23,7 @@ import {
   Zap,
   Fuel,
   PenLine,
+  User,
 } from 'lucide-react';
 import { HormibalLogo } from '@/components/shared/hormibal-logo';
 import { Button } from '@/components/ui/button';
@@ -263,6 +264,20 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </div>
           )}
         </div>
+
+        <Link href="/dashboard/perfil" onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) onToggle(); }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'w-full text-muted-foreground hover:text-primary hover:bg-primary/10 mb-1',
+              collapsed ? 'px-0 justify-center' : 'justify-start gap-3 px-3'
+            )}
+          >
+            <User className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Mi Perfil</span>}
+          </Button>
+        </Link>
 
         <Button
           variant="ghost"

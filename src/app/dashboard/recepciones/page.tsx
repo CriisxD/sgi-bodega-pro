@@ -285,7 +285,7 @@ export default function RecepcionesPage() {
 
       {/* View Details Modal */}
       <Dialog open={!!viewingReception} onOpenChange={(open) => !open && setViewingReception(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PackagePlus className="w-5 h-5 text-primary" />
