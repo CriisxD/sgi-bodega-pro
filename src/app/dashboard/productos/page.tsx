@@ -21,14 +21,8 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2, Trash2, Tags } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Loader2, PackagePlus, FileEdit, Package, Save, Upload, Download, ArrowDownAZ, ArrowUpAZ, ArrowDown01, ArrowUp10, Wand2, Trash2, Tags, PackageX, PackageCheck } from 'lucide-react';
 import type { Product, Category, ProductCategory } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -669,167 +663,176 @@ export default function ProductosPage() {
         </div>
       </div>
 
-      <Card className="card-glow border-border/50">
-        <CardHeader className="pb-3 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto pb-1">
-            <TabsList className="h-9">
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              {uniqueTypes.map((type) => (
-                <TabsTrigger key={type} value={type} className="capitalize">
-                  {type}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-card p-2 rounded-xl border border-border/50 shadow-sm">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto overflow-x-auto pb-1 md:pb-0">
+          <TabsList className="h-9 bg-background">
+            <TabsTrigger value="all" className="rounded-md data-[state=active]:bg-muted">Todos</TabsTrigger>
+            {uniqueTypes.map((type) => (
+              <TabsTrigger key={type} value={type} className="capitalize rounded-md data-[state=active]:bg-muted">
+                {type}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-          <div className="flex gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar producto..."
-                className="pl-9 h-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name')}>
-              <SelectTrigger className="w-[140px] h-9 hidden sm:flex">
-                <SelectValue placeholder="Ordenar por...">
-                  {sortBy === 'name_asc' && <div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div>}
-                  {sortBy === 'name_desc' && <div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div>}
-                  {sortBy === 'stock_asc' && <div className="flex items-center"><ArrowDown01 className="w-4 h-4 mr-2" /> Menor Stock</div>}
-                  {sortBy === 'stock_desc' && <div className="flex items-center"><ArrowUp10 className="w-4 h-4 mr-2" /> Mayor Stock</div>}
-                  {sortBy === 'status' && 'Estado'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name_asc"><div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div></SelectItem>
-                <SelectItem value="name_desc"><div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div></SelectItem>
-                <SelectItem value="stock_asc"><div className="flex items-center"><ArrowDown01 className="w-4 h-4 mr-2" /> Menor Stock</div></SelectItem>
-                <SelectItem value="stock_desc"><div className="flex items-center"><ArrowUp10 className="w-4 h-4 mr-2" /> Mayor Stock</div></SelectItem>
-                <SelectItem value="status">Estado</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex gap-2 w-full sm:w-auto shrink-0">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar producto..."
+              className="pl-9 h-10 bg-background border-none shadow-none focus-visible:ring-1"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-        </CardHeader>
-        <CardContent>
-          {selectedIds.size > 0 && (
-            <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
-              <span className="text-sm font-medium">{selectedIds.size} producto(s) seleccionado(s)</span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
-                  Deseleccionar
-                </Button>
-                <Button size="sm" variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={handleBulkDeactivate}>
-                  Desactivar
-                </Button>
-                <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
-                  <Trash2 className="w-4 h-4 mr-1" /> Eliminar
-                </Button>
-              </div>
+          <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name')}>
+            <SelectTrigger className="w-[140px] h-10 hidden sm:flex bg-background border-none shadow-none">
+              <SelectValue placeholder="Ordenar por...">
+                {sortBy === 'name_asc' && <div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div>}
+                {sortBy === 'name_desc' && <div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div>}
+                {sortBy === 'stock_asc' && <div className="flex items-center"><ArrowDown01 className="w-4 h-4 mr-2" /> Menor Stock</div>}
+                {sortBy === 'stock_desc' && <div className="flex items-center"><ArrowUp10 className="w-4 h-4 mr-2" /> Mayor Stock</div>}
+                {sortBy === 'status' && 'Estado'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc"><div className="flex items-center"><ArrowDownAZ className="w-4 h-4 mr-2" /> A - Z</div></SelectItem>
+              <SelectItem value="name_desc"><div className="flex items-center"><ArrowUpAZ className="w-4 h-4 mr-2" /> Z - A</div></SelectItem>
+              <SelectItem value="stock_asc"><div className="flex items-center"><ArrowDown01 className="w-4 h-4 mr-2" /> Menor Stock</div></SelectItem>
+              <SelectItem value="stock_desc"><div className="flex items-center"><ArrowUp10 className="w-4 h-4 mr-2" /> Mayor Stock</div></SelectItem>
+              <SelectItem value="status">Estado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl p-3 mb-4 animate-in fade-in-50">
+            <span className="text-sm font-medium">{selectedIds.size} producto(s) seleccionado(s)</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+                Deseleccionar
+              </Button>
+              <Button size="sm" variant="outline" className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleBulkDeactivate}>
+                Desactivar
+              </Button>
+              <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
+                <Trash2 className="w-4 h-4 mr-1" /> Eliminar
+              </Button>
             </div>
-          )}
-          <div className="rounded-md border border-border/50 overflow-hidden">
-            <Table>
-              <TableHeader className="bg-muted/50">
+          </div>
+        )}
+        <div className="rounded-xl border border-border/50 overflow-hidden bg-card shadow-sm">
+          <Table>
+            <TableHeader className="bg-muted/50 border-b border-border/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={filteredProducts.length > 0 && selectedIds.size === filteredProducts.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="font-semibold text-foreground">Producto</TableHead>
+                <TableHead className="hidden sm:table-cell font-semibold text-foreground">Categoría</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Stock</TableHead>
+                <TableHead className="hidden md:table-cell text-right font-semibold text-foreground">Mínimo</TableHead>
+                <TableHead className="hidden lg:table-cell font-semibold text-foreground">Estado</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={filteredProducts.length > 0 && selectedIds.size === filteredProducts.length}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead className="hidden sm:table-cell">Categoría</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="hidden md:table-cell text-right">Mínimo</TableHead>
-                  <TableHead className="hidden lg:table-cell">Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    No se encontraron productos
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No se encontraron productos
+              ) : (
+                filteredProducts.map(product => (
+                  <TableRow 
+                    key={product.id}
+                    className={`hover:bg-muted/20 transition-colors border-border/50 ${selectedIds.has(product.id) ? 'bg-primary/5' : ''}`}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(product.id)}
+                        onCheckedChange={() => toggleSelect(product.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium text-foreground">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          {product.name}
+                          {product.brand && (
+                            <div className="text-xs text-muted-foreground font-normal">{product.brand}</div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                      {product.category?.name}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={`font-bold text-base ${(product.stock <= product.min_stock && product.min_stock > 0) ? 'text-destructive' : 'text-foreground'}`}>
+                        {product.stock}
+                      </span> 
+                      <span className="text-xs text-muted-foreground ml-1">{product.unit}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-right text-muted-foreground text-sm">
+                      {product.min_stock}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {product.active ? (
+                        <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Activo
+                        </span>
+                      ) : (
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground font-normal text-xs px-2 rounded-sm border-transparent">
+                          Inactivo
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditModal(product)}
+                          title="Editar"
+                        >
+                          <FileEdit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={`h-8 w-8 hover:bg-muted ${product.active ? 'text-muted-foreground hover:text-warning' : 'text-muted-foreground hover:text-success'}`}
+                          onClick={() => toggleProductStatus(product.id, product.active)}
+                          title={product.active ? 'Desactivar' : 'Activar'}
+                        >
+                          {product.active ? <PackageX className="w-4 h-4" /> : <PackageCheck className="w-4 h-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleDeleteProduct(product.id)}
+                          title="Eliminar permanentemente"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredProducts.map(product => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(product.id)}
-                          onCheckedChange={() => toggleSelect(product.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            {product.name}
-                            {product.brand && (
-                              <div className="text-xs text-muted-foreground font-normal">{product.brand}</div>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
-                        {product.category?.name}
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        <span className={(product.stock <= product.min_stock && product.min_stock > 0) ? 'text-destructive' : 'text-success'}>
-                          {product.stock}
-                        </span> {product.unit}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-right text-muted-foreground">
-                        {product.min_stock}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Badge variant="outline" className={product.active ? 'bg-success/10 text-success border-success/20' : 'bg-muted/50 text-muted-foreground'}>
-                          <span className={`status-dot mr-1.5 ${product.active ? 'active' : 'inactive'}`} />
-                          {product.active ? 'Activo' : 'Inactivo'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-primary"
-                            onClick={() => openEditModal(product)}
-                            title="Editar"
-                          >
-                            <FileEdit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={`h-8 w-8 ${product.active ? 'text-destructive' : 'text-success'}`}
-                            onClick={() => toggleProductStatus(product.id, product.active)}
-                            title={product.active ? 'Desactivar' : 'Activar'}
-                          >
-                            <Package className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteProduct(product.id)}
-                            title="Eliminar permanentemente"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
 
       {/* New / Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

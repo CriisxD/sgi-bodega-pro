@@ -26,6 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { 
   Search, 
   Loader2, 
@@ -39,7 +44,11 @@ import {
   List, 
   RotateCcw, 
   SlidersHorizontal,
-  Plus
+  Plus,
+  Filter,
+  Power,
+  UserX,
+  UserCheck
 } from 'lucide-react';
 import type { Worker } from '@/lib/types';
 import { toast } from 'sonner';
@@ -684,158 +693,89 @@ export default function TrabajadoresPage() {
       </div>
 
       {/* Filter and Control Bar */}
-      <Card className="border-border/50 bg-card/60 backdrop-blur-md">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre, RUT, cargo, área..."
-                className="pl-9 h-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+      <div className="flex flex-col md:flex-row gap-3 justify-between items-center bg-card p-2 rounded-xl border border-border/50 shadow-sm">
+        {/* Search */}
+        <div className="relative w-full md:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre, RUT, cargo..."
+            className="pl-9 h-10 bg-background border-none shadow-none focus-visible:ring-1"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-            {/* Dropdown Filters & Controls */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Filter Area */}
-              <div className="w-[140px]">
-                <Select value={areaFilter} onValueChange={(val) => setAreaFilter(val || 'all')}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Área">
-                      {areaFilter === 'all' ? 'Todas las Áreas' : areaFilter}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las Áreas</SelectItem>
-                    {uniqueAreas.map(a => (
-                      <SelectItem key={a} value={a}>{a}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Position */}
-              <div className="w-[140px]">
-                <Select value={positionFilter} onValueChange={(val) => setPositionFilter(val || 'all')}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Cargo">
-                      {positionFilter === 'all' ? 'Todos los Cargos' : positionFilter}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los Cargos</SelectItem>
-                    {uniquePositions.map(p => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Status */}
-              <div className="w-[120px]">
-                <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Estado">
-                      {statusFilter === 'all' && 'Todos'}
-                      {statusFilter === 'active' && 'Activos'}
-                      {statusFilter === 'inactive' && 'Inactivos'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="active">Activos</SelectItem>
-                    <SelectItem value="inactive">Inactivos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Filter Type */}
-              <div className="w-[120px]">
-                <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val || 'all')}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Tipo">
-                      {typeFilter === 'all' && 'Ambos'}
-                      {typeFilter === 'internal' && 'Internos'}
-                      {typeFilter === 'external' && 'Externos'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Ambos</SelectItem>
-                    <SelectItem value="internal">Internos</SelectItem>
-                    <SelectItem value="external">Externos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sort By */}
-              <div className="w-[150px]">
-                <Select value={sortBy} onValueChange={(val) => setSortBy(val || 'name_asc')}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Ordenar por">
-                      {sortBy === 'name_asc' && 'Nombre (A-Z)'}
-                      {sortBy === 'name_desc' && 'Nombre (Z-A)'}
-                      {sortBy === 'rut_asc' && 'RUT'}
-                      {sortBy === 'area_asc' && 'Área (A-Z)'}
-                      {sortBy === 'position_asc' && 'Cargo (A-Z)'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name_asc">Nombre (A-Z)</SelectItem>
-                    <SelectItem value="name_desc">Nombre (Z-A)</SelectItem>
-                    <SelectItem value="rut_asc">RUT</SelectItem>
-                    <SelectItem value="area_asc">Área (A-Z)</SelectItem>
-                    <SelectItem value="position_asc">Cargo (A-Z)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Reset Filters */}
-              {(areaFilter !== 'all' || positionFilter !== 'all' || statusFilter !== 'all' || search !== '' || sortBy !== 'name_asc') && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
+        {/* View Mode & Advanced Filters */}
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          <Popover>
+            <PopoverTrigger className="flex items-center justify-center h-10 px-4 py-2 border border-input border-dashed bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background">
+                <Filter className="w-4 h-4 mr-2" />
+                Filtros
+                {(areaFilter !== 'all' || positionFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all') && (
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 rounded-sm">Activos</Badge>
+                )}
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-4" align="end">
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm">Filtros Avanzados</h4>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Área</Label>
+                    <Select value={areaFilter} onValueChange={(val) => setAreaFilter(val || 'all')}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todas las Áreas" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas las Áreas</SelectItem>
+                        {uniqueAreas.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Cargo</Label>
+                    <Select value={positionFilter} onValueChange={(val) => setPositionFilter(val || 'all')}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todos los Cargos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los Cargos</SelectItem>
+                        {uniquePositions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Estado</Label>
+                    <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="active">Activos</SelectItem>
+                        <SelectItem value="inactive">Inactivos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                {(areaFilter !== 'all' || positionFilter !== 'all' || statusFilter !== 'all' || typeFilter !== 'all' || sortBy !== 'name_asc') && (
+                  <Button variant="ghost" className="w-full text-xs h-8 mt-2" onClick={() => {
                     setAreaFilter('all');
                     setPositionFilter('all');
                     setStatusFilter('all');
-                    setSearch('');
+                    setTypeFilter('all');
                     setSortBy('name_asc');
-                  }}
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                  title="Restablecer filtros"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
-              )}
-
-              {/* View Mode Toggle */}
-              <div className="border border-border rounded-lg p-0.5 flex items-center gap-0.5 bg-background">
-                <Button
-                  variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-8 w-8 rounded-md"
-                  onClick={() => setViewMode('table')}
-                  title="Vista de Tabla"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-8 w-8 rounded-md"
-                  onClick={() => setViewMode('cards')}
-                  title="Vista de Tarjetas"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </Button>
+                  }}>
+                    Limpiar Filtros
+                  </Button>
+                )}
               </div>
-            </div>
+            </PopoverContent>
+          </Popover>
+
+          <div className="border border-border rounded-lg p-0.5 flex items-center gap-0.5 bg-background shrink-0">
+            <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-md" onClick={() => setViewMode('table')}>
+              <List className="w-4 h-4" />
+            </Button>
+            <Button variant={viewMode === 'cards' ? 'secondary' : 'ghost'} size="icon" className="h-9 w-9 rounded-md" onClick={() => setViewMode('cards')}>
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Selected Items Bulk Actions */}
       {selectedIds.size > 0 && (
@@ -860,92 +800,96 @@ export default function TrabajadoresPage() {
 
       {/* Main List */}
       {viewMode === 'table' ? (
-        <Card className="card-glow border-border/50 overflow-hidden">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-muted/30">
+        <div className="rounded-xl border border-border/50 overflow-hidden bg-card shadow-sm">
+          <Table>
+            <TableHeader className="bg-muted/50 border-b border-border/50">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="font-semibold text-foreground">Nombre</TableHead>
+                <TableHead className="font-semibold text-foreground">RUT</TableHead>
+                <TableHead className="font-semibold text-foreground">Área</TableHead>
+                <TableHead className="font-semibold text-foreground">Cargo</TableHead>
+                <TableHead className="font-semibold text-foreground">Estado</TableHead>
+                <TableHead className="text-right font-semibold text-foreground">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredWorkers.length === 0 ? (
                 <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={filteredWorkers.length > 0 && selectedIds.size === filteredWorkers.length}
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>RUT</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Cargo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    No se encontraron trabajadores con los filtros actuales
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredWorkers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                      No se encontraron trabajadores con los filtros actuales
+              ) : (
+                filteredWorkers.map(worker => (
+                  <TableRow 
+                    key={worker.id} 
+                    className={`hover:bg-muted/20 transition-colors border-border/50 ${selectedIds.has(worker.id) ? 'bg-primary/5' : ''}`}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(worker.id)}
+                        onCheckedChange={() => toggleSelect(worker.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium text-foreground">
+                      {worker.name}
+                      {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0 px-1 bg-muted">Externo</Badge>}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm font-mono">{worker.rut}</TableCell>
+                    <TableCell>
+                      {worker.is_external ? (
+                        <span className="text-muted-foreground text-sm">{worker.company}</span>
+                      ) : (
+                        <span className="text-sm">{worker.area}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{worker.position}</TableCell>
+                    <TableCell>
+                      {worker.active ? (
+                        <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Activo
+                        </span>
+                      ) : (
+                        <Badge variant="secondary" className="bg-muted text-muted-foreground font-normal text-xs px-2 rounded-sm border-transparent">
+                          Inactivo
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEditModal(worker)}
+                          title="Editar"
+                        >
+                          <FileEdit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={`h-8 w-8 hover:bg-muted ${worker.active ? 'text-muted-foreground hover:text-warning' : 'text-muted-foreground hover:text-success'}`}
+                          onClick={() => toggleWorkerStatus(worker.id, worker.active)}
+                          title={worker.active ? 'Desactivar' : 'Activar'}
+                        >
+                          {worker.active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filteredWorkers.map(worker => (
-                    <TableRow 
-                      key={worker.id} 
-                      className={`hover:bg-muted/10 transition-colors ${selectedIds.has(worker.id) ? 'bg-primary/5' : ''}`}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(worker.id)}
-                          onCheckedChange={() => toggleSelect(worker.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-semibold text-foreground">
-                        {worker.name}
-                        {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0">Externo</Badge>}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-xs">{worker.rut}</TableCell>
-                      <TableCell>
-                        {worker.is_external ? (
-                          <span className="text-muted-foreground">{worker.company}</span>
-                        ) : (
-                          worker.area
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{worker.position}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={worker.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-muted/50 text-muted-foreground border-border'}>
-                          <span className={`status-dot mr-1.5 ${worker.active ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                          {worker.active ? 'Activo' : 'Inactivo'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-primary"
-                            onClick={() => openEditModal(worker)}
-                            title="Editar"
-                          >
-                            <FileEdit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={`h-8 w-8 ${worker.active ? 'text-destructive' : 'text-success'}`}
-                            onClick={() => toggleWorkerStatus(worker.id, worker.active)}
-                            title={worker.active ? 'Desactivar' : 'Activar'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         /* Cards View (Grid) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -985,16 +929,22 @@ export default function TrabajadoresPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                    <Badge variant="outline" className={worker.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-muted/50 text-muted-foreground border-border'}>
-                      <span className={`status-dot mr-1.5 ${worker.active ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                      {worker.active ? 'Activo' : 'Inactivo'}
-                    </Badge>
+                    {worker.active ? (
+                      <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Activo
+                      </span>
+                    ) : (
+                      <Badge variant="secondary" className="bg-muted text-muted-foreground font-normal text-xs px-2 rounded-sm border-transparent">
+                        Inactivo
+                      </Badge>
+                    )}
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-primary"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={() => openEditModal(worker)}
                         title="Editar"
                       >
@@ -1003,11 +953,11 @@ export default function TrabajadoresPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className={`h-8 w-8 ${worker.active ? 'text-destructive' : 'text-success'}`}
+                        className={`h-8 w-8 hover:bg-muted ${worker.active ? 'text-muted-foreground hover:text-warning' : 'text-muted-foreground hover:text-success'}`}
                         onClick={() => toggleWorkerStatus(worker.id, worker.active)}
                         title={worker.active ? 'Desactivar' : 'Activar'}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {worker.active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>

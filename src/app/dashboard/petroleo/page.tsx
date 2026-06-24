@@ -13,11 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import SignatureCanvas from 'react-signature-canvas';
-import { Droplet, Save, Eraser, Loader2, Fuel, PenTool, ArrowDownToLine, ArrowUpFromLine, History, Download, Eye } from 'lucide-react';
+import { Droplet, Save, Eraser, Loader2, Fuel, PenTool, ArrowDownToLine, ArrowUpFromLine, History, Download, Eye, Check, ChevronsUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Papa from 'papaparse';
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function PetroleoPage() {
   const { profile } = useAuth();
@@ -51,6 +54,8 @@ export default function PetroleoPage() {
   const [fuelRecords, setFuelRecords] = useState<any[]>([]);
   const [fuelReceptions, setFuelReceptions] = useState<any[]>([]);
   const [tankStock, setTankStock] = useState<number>(0);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [openWorkerCombobox, setOpenWorkerCombobox] = useState(false);
 
   // View Signature Dialog
   const [viewingSignature, setViewingSignature] = useState<string | null>(null);
@@ -68,11 +73,19 @@ export default function PetroleoPage() {
         .select('*, bodeguero:bodeguero_id(full_name)')
         .order('created_at', { ascending: false });
 
+      const { data: workersData, error: err3 } = await supabase
+        .from('workers')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
       if (err1) throw err1;
       if (err2) throw err2;
+      if (err3) throw err3;
 
       setFuelRecords(records || []);
       setFuelReceptions(receptions || []);
+      setWorkers(workersData || []);
 
       const totalIn = (receptions || []).reduce((acc, curr) => acc + curr.liters, 0);
       const totalOut = (records || []).reduce((acc, curr) => acc + curr.liters, 0);
@@ -245,43 +258,69 @@ export default function PetroleoPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl">
-          <TabsTrigger value="dispensar"><ArrowUpFromLine className="w-4 h-4 mr-2" /> Dispensar</TabsTrigger>
-          <TabsTrigger value="recibir"><ArrowDownToLine className="w-4 h-4 mr-2" /> Recibir Camión</TabsTrigger>
-          <TabsTrigger value="historial"><History className="w-4 h-4 mr-2" /> Historial</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl bg-muted/50 p-1 rounded-xl">
+          <TabsTrigger value="dispensar" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"><ArrowUpFromLine className="w-4 h-4 mr-2" /> Dispensar</TabsTrigger>
+          <TabsTrigger value="recibir" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"><ArrowDownToLine className="w-4 h-4 mr-2" /> Rellenar</TabsTrigger>
+          <TabsTrigger value="historial" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"><History className="w-4 h-4 mr-2" /> Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dispensar" className="mt-6">
-          <Card className="card-glow border-border/50 max-w-3xl">
-            <CardHeader>
-              <CardTitle className="text-lg">Entregar Petróleo a Maquinaria</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleDispense} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Removing the Card wrapper to integrate the form directly into the page flow */}
+          <div className="max-w-3xl">
+            <h3 className="text-lg font-semibold mb-6">Autorizar Salida a Maquinaria</h3>
+            <form onSubmit={handleDispense} className="space-y-8">
+              {/* Receptor Details (Combobox) */}
+              <div className="space-y-4 bg-card border border-border/50 p-5 rounded-xl shadow-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="receiver_name">Nombre del Receptor</Label>
-                    <Input
-                      id="receiver_name"
-                      placeholder="Ej. Juan Pérez"
-                      value={formData.receiver_name}
-                      onChange={(e) => setFormData({...formData, receiver_name: e.target.value})}
-                      required
-                    />
+                    <Label>Trabajador / Receptor</Label>
+                    <Popover open={openWorkerCombobox} onOpenChange={setOpenWorkerCombobox}>
+                      <PopoverTrigger 
+                        className="w-full flex items-center justify-between h-10 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {formData.receiver_rut
+                          ? `${formData.receiver_name} (${formData.receiver_rut})`
+                          : "Seleccionar trabajador..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] sm:w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Buscar trabajador..." />
+                          <CommandList>
+                            <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
+                            <CommandGroup>
+                              {workers.map((worker) => (
+                                <CommandItem
+                                  key={worker.id}
+                                  value={`${worker.name} ${worker.rut}`}
+                                  onSelect={() => {
+                                    setFormData({
+                                      ...formData,
+                                      receiver_name: worker.name,
+                                      receiver_rut: worker.rut || 'S/N'
+                                    });
+                                    setOpenWorkerCombobox(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.receiver_rut === worker.rut ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span>{worker.name}</span>
+                                    {worker.rut && <span className="text-xs text-muted-foreground">{worker.rut}</span>}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="receiver_rut">RUT del Receptor</Label>
-                    <Input
-                      id="receiver_rut"
-                      placeholder="12.345.678-9"
-                      value={formData.receiver_rut}
-                      onChange={(e) => setFormData({...formData, receiver_rut: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="vehicle_type">Maquinaria / Vehículo</Label>
                     <Select 
@@ -289,7 +328,7 @@ export default function PetroleoPage() {
                       onValueChange={(val: any) => setFormData({...formData, vehicle_type: val || ''})}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 bg-background">
                         <SelectValue placeholder="Seleccione vehículo" />
                       </SelectTrigger>
                       <SelectContent>
@@ -304,7 +343,7 @@ export default function PetroleoPage() {
                     
                     {formData.vehicle_type === 'Otro' && (
                       <Input
-                        className="mt-2"
+                        className="mt-2 h-10 bg-background"
                         placeholder="Especifique el vehículo/máquina..."
                         value={formData.vehicle_other_type}
                         onChange={(e) => setFormData({...formData, vehicle_other_type: e.target.value})}
@@ -312,74 +351,81 @@ export default function PetroleoPage() {
                       />
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="liters">Litros a Dispensar</Label>
-                    <div className="relative">
-                      <Input
-                        id="liters"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        placeholder="0.0"
-                        className="pr-12"
-                        value={formData.liters}
-                        onChange={(e) => setFormData({...formData, liters: e.target.value})}
-                        required
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
-                        L
-                      </div>
+                </div>
+
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="liters">Litros a Dispensar</Label>
+                  <div className="relative w-full md:w-1/2">
+                    <Input
+                      id="liters"
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      placeholder="0.0"
+                      className="pr-12 h-12 text-lg font-mono bg-background"
+                      value={formData.liters}
+                      onChange={(e) => setFormData({...formData, liters: e.target.value})}
+                      required
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-muted-foreground font-bold">
+                      L
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              {/* Signatures */}
+              <div className="bg-card border border-border/50 p-5 rounded-xl shadow-sm">
+                <h4 className="text-sm font-semibold mb-4 border-b pb-2">Firmas Requeridas</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label>Firma del Receptor</Label>
+                    <Label className="text-xs">Receptor</Label>
                     {receptorSigData ? (
-                      <div className="relative border border-border rounded-lg bg-white p-2 flex justify-center items-center h-28">
+                      <div className="relative border border-border rounded-lg bg-background p-2 flex justify-center items-center h-20 overflow-hidden">
                          <img src={receptorSigData} alt="Firma Receptor" className="max-h-full object-contain" />
-                         <Button type="button" variant="ghost" size="icon" onClick={() => setReceptorSigData(null)} className="absolute top-1 right-1 h-8 w-8 text-destructive hover:bg-destructive/10">
-                           <Eraser className="w-4 h-4" />
+                         <Button type="button" variant="ghost" size="icon" onClick={() => setReceptorSigData(null)} className="absolute top-1 right-1 h-6 w-6 text-destructive hover:bg-destructive/10">
+                           <Eraser className="w-3 h-3" />
                          </Button>
                       </div>
                     ) : (
-                      <Button type="button" variant="outline" className="w-full h-28 border-dashed flex flex-col gap-2" onClick={() => setActiveDialog('receptor')}>
-                        <PenTool className="w-6 h-6 text-muted-foreground" />
-                        <span>Pulsar para Firmar</span>
+                      <Button type="button" variant="outline" className="w-full h-20 border-dashed flex flex-col gap-1 bg-muted/20 hover:bg-muted/50 transition-colors" onClick={() => setActiveDialog('receptor')}>
+                        <PenTool className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Pulsar para firmar</span>
                       </Button>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Firma del Bodeguero (Emisor)</Label>
+                    <Label className="text-xs">Bodeguero (Emisor)</Label>
                     {bodegueroSigData ? (
-                      <div className="relative border border-border rounded-lg bg-white p-2 flex justify-center items-center h-28">
+                      <div className="relative border border-border rounded-lg bg-background p-2 flex justify-center items-center h-20 overflow-hidden">
                          <img src={bodegueroSigData} alt="Firma Bodeguero" className="max-h-full object-contain" />
-                         <Button type="button" variant="ghost" size="icon" onClick={() => setBodegueroSigData(null)} className="absolute top-1 right-1 h-8 w-8 text-destructive hover:bg-destructive/10">
-                           <Eraser className="w-4 h-4" />
+                         <Button type="button" variant="ghost" size="icon" onClick={() => setBodegueroSigData(null)} className="absolute top-1 right-1 h-6 w-6 text-destructive hover:bg-destructive/10">
+                           <Eraser className="w-3 h-3" />
                          </Button>
                       </div>
                     ) : (
-                      <Button type="button" variant="outline" className="w-full h-28 border-dashed flex flex-col gap-2" onClick={() => setActiveDialog('bodeguero')}>
-                        <PenTool className="w-6 h-6 text-muted-foreground" />
-                        <span>Pulsar para Firmar</span>
+                      <Button type="button" variant="outline" className="w-full h-20 border-dashed flex flex-col gap-1 bg-muted/20 hover:bg-muted/50 transition-colors" onClick={() => setActiveDialog('bodeguero')}>
+                        <PenTool className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Pulsar para firmar</span>
                       </Button>
                     )}
                   </div>
                 </div>
+              </div>
 
-                <Button type="submit" className="w-full bg-warning hover:bg-warning/90 text-warning-foreground" disabled={loading}>
+              <div className="pt-2">
+                <Button type="submit" className="w-full h-12 text-base shadow-md font-bold" disabled={loading}>
                   {loading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   ) : (
-                    <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                    <Droplet className="w-5 h-5 mr-2" />
                   )}
-                  Registrar Salida de Petróleo
+                  Autorizar y Dispensar
                 </Button>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
+            </form>
+          </div>
         </TabsContent>
 
         <TabsContent value="recibir" className="mt-6">
