@@ -250,48 +250,51 @@ export default function DigitarValeFisicoPage() {
               <div className="space-y-2">
                 <Label>Trabajador (Receptor)</Label>
                 <div className="flex gap-2">
-                  <Popover open={openWorker} onOpenChange={setOpenWorker}>
-                    {/* @ts-ignore Base UI render prop */}
-                    <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between" />}>
-                        {workerId
-                          ? workers.find((w) => w.id === workerId)?.name
-                          : "Buscar trabajador..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Buscar por nombre o RUT..." />
-                        <CommandList>
-                          <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
-                          <CommandGroup>
-                            {workers.map((worker) => (
-                              <CommandItem
-                                key={worker.id}
-                                value={`${worker.name} ${worker.rut}`}
-                                onSelect={() => {
-                                  setWorkerId(worker.id);
-                                  setOpenWorker(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    workerId === worker.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {worker.name} ({worker.rut})
-                                {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <div className="flex-1 min-w-0">
+                    <Popover open={openWorker} onOpenChange={setOpenWorker}>
+                      {/* @ts-ignore Base UI render prop */}
+                      <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between" />}>
+                          {workerId
+                            ? workers.find((w) => w.id === workerId)?.name
+                            : "Buscar trabajador..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Buscar por nombre o RUT..." />
+                          <CommandList>
+                            <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
+                            <CommandGroup>
+                              {workers.map((worker) => (
+                                <CommandItem
+                                  key={worker.id}
+                                  value={`${worker.name} ${worker.rut}`}
+                                  onSelect={() => {
+                                    setWorkerId(worker.id);
+                                    setOpenWorker(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      workerId === worker.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {worker.name} ({worker.rut})
+                                  {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="icon"
+                    className="shrink-0"
                     onClick={() => setCreateWorkerOpen(true)}
                     title="Crear nuevo trabajador rápido"
                   >
