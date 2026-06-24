@@ -76,7 +76,7 @@ export default function PetroleoPage() {
       const { data: workersData, error: err3 } = await supabase
         .from('workers')
         .select('*')
-        .eq('is_active', true)
+        .eq('active', true)
         .order('name');
 
       if (err1) throw err1;
