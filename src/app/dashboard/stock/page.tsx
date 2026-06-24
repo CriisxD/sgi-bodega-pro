@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -126,15 +127,15 @@ export default function StockPage() {
     let result = products.filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
       const matchCategory = selectedCategory === 'all' || p.category?.type === selectedCategory;
-      const matchCritical = onlyCritical ? p.stock <= p.min_stock : true;
+      const matchCritical = onlyCritical ? (p.stock <= p.min_stock && p.min_stock > 0) : true;
       return matchSearch && matchCategory && matchCritical;
     });
 
     result.sort((a, b) => {
       switch (sortBy) {
         case 'critical': {
-          const aCrit = a.stock <= a.min_stock ? 0 : 1;
-          const bCrit = b.stock <= b.min_stock ? 0 : 1;
+          const aCrit = (a.stock <= a.min_stock && a.min_stock > 0) ? 0 : 1;
+          const bCrit = (b.stock <= b.min_stock && b.min_stock > 0) ? 0 : 1;
           if (aCrit !== bCrit) return aCrit - bCrit;
           return a.stock - b.stock;
         }
@@ -156,7 +157,7 @@ export default function StockPage() {
     return result;
   }, [products, search, selectedCategory, onlyCritical, sortBy]);
 
-  const lowStockCount = products.filter((p) => p.stock <= p.min_stock).length;
+  const lowStockCount = products.filter((p) => p.stock <= p.min_stock && p.min_stock > 0).length;
 
   // Adjust Stock Handler
   const handleAdjustStock = async () => {
@@ -294,69 +295,68 @@ export default function StockPage() {
           </div>
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-col gap-3">
-          {/* Row 1: Search */}
-          <div className="relative w-full sm:w-64">
+        {/* Action Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center bg-card p-2 rounded-lg border border-border/50 shadow-sm">
+          {/* Search */}
+          <div className="relative w-full sm:w-80 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar producto..."
-              className="pl-9 h-10 sm:h-9"
+              placeholder="Buscar producto por nombre o código..."
+              className="pl-9 h-10 border-none shadow-none focus-visible:ring-1 focus-visible:ring-primary/50"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
-          {/* Row 2: Solo Críticos & Sort Dropdown Side-by-Side on Mobile */}
-          <div className="flex flex-row gap-2 w-full sm:w-auto">
-            {/* Critical Only Toggle */}
-            <Button
-              variant={onlyCritical ? 'destructive' : 'outline'}
-              size="sm"
-              onClick={() => setOnlyCritical(!onlyCritical)}
-              className="flex-1 sm:flex-none h-10 sm:h-9 whitespace-nowrap text-xs sm:text-sm"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
-              Solo Críticos ({lowStockCount})
-            </Button>
+          <div className="hidden sm:block w-px h-6 bg-border mx-2" />
 
-            {/* Sort */}
-            <Select value={sortBy} onValueChange={(val) => setSortBy((val || 'critical') as SortOption)}>
-              <SelectTrigger className="flex-1 sm:w-[170px] h-10 sm:h-9 text-xs sm:text-sm">
-                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                <SelectValue>
-                  {sortLabels[sortBy]}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.entries(sortLabels) as [SortOption, string][]).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Row 3: Category horizontal chips */}
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 hide-scrollbar -mx-4 px-4 sm:-mx-0 sm:px-0">
+          {/* Category Chips (Desktop) */}
+          <div className="flex-1 overflow-x-auto hide-scrollbar flex gap-1 px-1 w-full">
             <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
+              variant={selectedCategory === 'all' ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setSelectedCategory('all')}
-              className="whitespace-nowrap h-8"
+              className={cn("whitespace-nowrap h-8 rounded-full px-4 text-xs", selectedCategory === 'all' && "bg-primary/10 text-primary font-medium hover:bg-primary/20")}
             >
               Todos
             </Button>
             {Array.from(new Set(products.map(p => p.category?.type).filter(Boolean))).sort().map((type) => (
               <Button
                 key={type}
-                variant={selectedCategory === type ? 'default' : 'outline'}
+                variant={selectedCategory === type ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => setSelectedCategory(type as string)}
-                className="whitespace-nowrap capitalize h-8"
+                className={cn("whitespace-nowrap capitalize h-8 rounded-full px-4 text-xs", selectedCategory === type && "bg-primary/10 text-primary font-medium hover:bg-primary/20")}
               >
                 {type}
               </Button>
             ))}
+          </div>
+
+          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
+            {/* Critical Only Toggle */}
+            <Button
+              variant={onlyCritical ? 'destructive' : 'outline'}
+              size="sm"
+              onClick={() => setOnlyCritical(!onlyCritical)}
+              className={cn("flex-1 sm:flex-none h-9 whitespace-nowrap text-xs transition-colors", onlyCritical ? "shadow-sm shadow-destructive/20" : "")}
+            >
+              <AlertTriangle className={cn("w-3.5 h-3.5 mr-1.5", onlyCritical ? "animate-pulse" : "")} />
+              Críticos ({lowStockCount})
+            </Button>
+
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={(val) => setSortBy((val || 'critical') as SortOption)}>
+              <SelectTrigger className="w-full sm:w-[150px] h-9 text-xs">
+                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                <SelectValue>{sortLabels[sortBy]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(sortLabels) as [SortOption, string][]).map(([value, label]) => (
+                  <SelectItem key={value} value={value} className="text-xs">{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -365,13 +365,13 @@ export default function StockPage() {
       {(viewMode === 'cards' || viewMode === 'table') && (
         <div className={`${viewMode === 'table' ? 'block sm:hidden' : 'block'} grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`}>
           {filteredProducts.map((product) => {
-            const isLowStock = product.stock <= product.min_stock;
+            const isLowStock = product.stock <= product.min_stock && product.min_stock > 0;
             return (
               <Card
                 key={product.id}
-                className={`card-glow overflow-hidden transition-all hover:border-primary/50 ${
-                  isLowStock ? 'bg-destructive/5 border-destructive/20' : 'bg-card border-border/50'
-                }`}
+                className={cn("card-glow overflow-hidden transition-all hover:border-primary/50",
+                  isLowStock ? "bg-destructive/5 border-destructive/20" : "bg-card border-border/50"
+                )}
               >
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
@@ -463,42 +463,45 @@ export default function StockPage() {
               </thead>
               <tbody>
                 {filteredProducts.map((product) => {
-                  const isLowStock = product.stock <= product.min_stock;
+                  const isLowStock = product.stock <= product.min_stock && product.min_stock > 0;
                   return (
-                    <tr key={product.id} className={`border-b last:border-0 transition-colors hover:bg-muted/20 ${isLowStock ? 'bg-destructive/5' : ''}`}>
-                      <td className="py-2.5 px-4">
+                    <tr key={product.id} className={cn("border-b last:border-0 transition-colors hover:bg-muted/10", isLowStock ? "bg-destructive/5 hover:bg-destructive/10" : "")}>
+                      <td className="py-3 px-4 w-20">
                         {isLowStock ? (
-                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 uppercase shadow-sm">
                             <AlertTriangle className="w-3 h-3 mr-1" /> Crítico
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-[10px]">OK</Badge>
+                          <span className="w-1.5 h-1.5 rounded-full bg-border inline-block ml-4 opacity-50" title="OK"></span>
                         )}
                       </td>
-                      <td className="py-2.5 px-4 font-medium">{product.name}</td>
-                      <td className="py-2.5 px-4 text-muted-foreground hidden sm:table-cell">{product.category?.name || '—'}</td>
-                      <td className="py-2.5 px-4 text-center">
-                        <span className={`font-bold text-lg ${isLowStock ? 'text-destructive' : 'text-primary'}`}>
-                          {product.stock}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-1">{product.unit}</span>
+                      <td className="py-3 px-4 font-semibold">{product.name}</td>
+                      <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell capitalize text-xs">{product.category?.name || '—'}</td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className={cn("font-black text-xl tracking-tight", isLowStock ? "text-destructive" : "text-foreground")}>
+                            {product.stock}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/70 uppercase font-medium">{product.unit}</span>
+                        </div>
                       </td>
-                      <td className="py-2.5 px-4 text-center text-muted-foreground hidden sm:table-cell">{product.min_stock}</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedProduct(product)}>
+                      <td className="py-3 px-4 text-center text-muted-foreground hidden sm:table-cell font-mono text-xs">{product.min_stock > 0 ? product.min_stock : '—'}</td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex justify-end gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => setSelectedProduct(product)} title="Ver Historial">
                             <History className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                             onClick={() => {
                               setAdjustProduct(product);
                               setAdjustType('entrada');
                               setAdjustQty(1);
                               setAdjustNotes('');
                             }}
+                            title="Ajuste Rápido"
                           >
                             <SlidersHorizontal className="w-4 h-4" />
                           </Button>

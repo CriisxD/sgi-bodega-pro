@@ -28,11 +28,11 @@ export default function DigitarValeFisicoPage() {
   const [workerId, setWorkerId] = useState('');
   const [valeType, setValeType] = useState('uso_diario');
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState([{ product_id: '', quantity: 1 }]);
+  const [items, setItems] = useState<{product_id: string, quantity: number}[]>([]);
   
   // Combobox states
   const [openWorker, setOpenWorker] = useState(false);
-  const [openProducts, setOpenProducts] = useState<Record<number, boolean>>({});
+  const [openSearch, setOpenSearch] = useState(false);
 
   // Fast Create Worker state
   const [createWorkerOpen, setCreateWorkerOpen] = useState(false);
@@ -62,8 +62,16 @@ export default function DigitarValeFisicoPage() {
     return ['material', 'insumo', 'herramienta', 'consumible'].includes(p.category?.type?.toLowerCase() || '') || !p.category;
   });
 
-  const handleAddItem = () => {
-    setItems([...items, { product_id: '', quantity: 1 }]);
+  const handleSelectProduct = (productId: string) => {
+    const existingIdx = items.findIndex(i => i.product_id === productId);
+    if (existingIdx >= 0) {
+      const newItems = [...items];
+      newItems[existingIdx].quantity += 1;
+      setItems(newItems);
+    } else {
+      setItems([{ product_id: productId, quantity: 1 }, ...items]);
+    }
+    setOpenSearch(false);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -146,8 +154,9 @@ export default function DigitarValeFisicoPage() {
     
     // Validate
     if (!workerId) return toast.error('Selecciona un trabajador');
+    if (items.length === 0) return toast.error('Debe añadir al menos un producto al vale');
     if (items.some(i => !i.product_id || i.quantity <= 0)) {
-      return toast.error('Todos los ítems deben tener un producto y cantidad válida');
+      return toast.error('Todos los ítems deben tener cantidad válida mayor a 0');
     }
 
     setSubmitting(true);
@@ -217,7 +226,7 @@ export default function DigitarValeFisicoPage() {
       setWorkerId('');
       setValeType('uso_diario');
       setNotes('');
-      setItems([{ product_id: '', quantity: 1 }]);
+      setItems([]);
       
     } catch (error: any) {
       toast.error('Error al ingresar el vale: ' + error.message);
@@ -242,212 +251,249 @@ export default function DigitarValeFisicoPage() {
         </p>
       </div>
 
-      <Card className="card-glow border-border/50">
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Header info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Trabajador (Receptor)</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 min-w-0">
-                    <Popover open={openWorker} onOpenChange={setOpenWorker}>
-                      {/* @ts-ignore Base UI render prop */}
-                      <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between" />}>
-                          {workerId
-                            ? workers.find((w) => w.id === workerId)?.name
-                            : "Buscar trabajador..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0">
-                        <Command>
-                          <CommandInput placeholder="Buscar por nombre o RUT..." />
-                          <CommandList>
-                            <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
-                            <CommandGroup>
-                              {workers.map((worker) => (
-                                <CommandItem
-                                  key={worker.id}
-                                  value={`${worker.name} ${worker.rut}`}
-                                  onSelect={() => {
-                                    setWorkerId(worker.id);
-                                    setOpenWorker(false);
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          
+          {/* ═══════════════════════════════════════════
+              LEFT COLUMN: Workspace (Worker, Type, Add Products) 
+              ═══════════════════════════════════════════ */}
+          <div className="lg:col-span-3 space-y-6">
+            <Card className="card-glow border-border/50">
+              <CardContent className="p-5 space-y-6">
+                
+                {/* Receptor y Tipo */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">1. Trabajador (Receptor) *</Label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 min-w-0">
+                        <Popover open={openWorker} onOpenChange={setOpenWorker}>
+                          {/* @ts-ignore Base UI render prop */}
+                          <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-11" />}>
+                              {workerId
+                                ? workers.find((w) => w.id === workerId)?.name
+                                : "Buscar trabajador..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Buscar por nombre o RUT..." />
+                              <CommandList>
+                                <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
+                                <CommandGroup>
+                                  {workers.map((worker) => (
+                                    <CommandItem
+                                      key={worker.id}
+                                      value={`${worker.name} ${worker.rut}`}
+                                      onSelect={() => {
+                                        setWorkerId(worker.id);
+                                        setOpenWorker(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          workerId === worker.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {worker.name} ({worker.rut})
+                                      {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon"
+                        className="shrink-0 h-11 w-11"
+                        onClick={() => setCreateWorkerOpen(true)}
+                        title="Crear nuevo trabajador rápido"
+                      >
+                        <UserPlus className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">2. Tipo de Vale *</Label>
+                    <Select value={valeType} onValueChange={(val: any) => setValeType(val)} required>
+                      <SelectTrigger className="h-11">
+                        <SelectValue placeholder="Seleccione tipo">
+                          {valeType === 'uso_diario' && 'Uso Diario (Devolución hoy)'}
+                          {valeType === 'cargo_personal' && 'Cargo Personal (Largo plazo)'}
+                          {valeType === 'material' && 'Material (Consumo)'}
+                          {valeType === 'epp' && 'EPP (Requiere firma legal)'}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="uso_diario">Uso Diario (Devolución hoy)</SelectItem>
+                        <SelectItem value="cargo_personal">Cargo Personal (Largo plazo)</SelectItem>
+                        <SelectItem value="material">Material (Consumo)</SelectItem>
+                        <SelectItem value="epp">EPP (Requiere firma legal)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Notas */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Notas Adicionales (Opcional)</Label>
+                  <Input 
+                    placeholder="Ej. Vale entregado firmado por Supervisor X..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="card-glow border-border/50 bg-primary/5 border-primary/20">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">3</div>
+                  <Label className="text-base font-bold text-primary">Añadir Productos al Vale</Label>
+                </div>
+                
+                <Popover open={openSearch} onOpenChange={setOpenSearch}>
+                  {/* @ts-ignore Base UI render prop */}
+                  <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-12 text-base shadow-sm" />}>
+                      Buscar producto por nombre o código...
+                      <Plus className="ml-2 h-5 w-5 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Escribe para buscar..." autoFocus />
+                      <CommandList>
+                        <CommandEmpty>No se encontró el producto.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredProducts.map((product) => (
+                            <CommandItem
+                              key={product.id}
+                              value={product.name}
+                              onSelect={() => handleSelectProduct(product.id)}
+                              className="py-3"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">{product.name}</span>
+                                <span className={cn("text-xs", product.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
+                                  Stock: {product.stock} {product.unit}
+                                </span>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              RIGHT COLUMN: Cart / Ticket
+              ═══════════════════════════════════════════ */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-6">
+              <Card className="border-border/50 shadow-xl flex flex-col h-[calc(100vh-120px)] max-h-[800px]">
+                <div className="bg-muted/50 border-b border-border/50 p-4">
+                  <h3 className="font-bold flex items-center justify-between">
+                    <span>Resumen del Vale</span>
+                    <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-full">
+                      {items.length} ítems
+                    </span>
+                  </h3>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {items.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm opacity-50 py-20">
+                      <Plus className="w-12 h-12 mb-4" />
+                      <p>Añade productos desde el buscador</p>
+                    </div>
+                  ) : (
+                    items.map((item, idx) => {
+                      const selectedProd = products.find(p => p.id === item.product_id);
+                      if (!selectedProd) return null;
+                      
+                      const isStockCritical = selectedProd.stock < item.quantity;
+
+                      return (
+                        <div key={`${item.product_id}-${idx}`} className={cn("p-3 rounded-lg border", isStockCritical ? "border-destructive/30 bg-destructive/5" : "border-border/50 bg-background")}>
+                          <div className="flex justify-between items-start mb-2 gap-2">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm leading-tight">{selectedProd.name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-muted-foreground">En stock: {selectedProd.stock}</span>
+                                <Button 
+                                  type="button" 
+                                  variant="link" 
+                                  size="sm" 
+                                  className="h-auto p-0 text-[10px] text-primary"
+                                  onClick={() => {
+                                    setQuickAdjustProduct(selectedProd);
+                                    setQuickAdjustQty(1);
                                   }}
                                 >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      workerId === worker.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {worker.name} ({worker.rut})
-                                  {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                                  + Ajustar
+                                </Button>
+                              </div>
+                            </div>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0 h-7 w-7"
+                              onClick={() => handleRemoveItem(idx)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-3">
+                            <Label className="text-xs font-semibold">Cantidad</Label>
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                type="number" 
+                                min="1" 
+                                value={item.quantity}
+                                onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value))}
+                                className={cn("w-20 h-8 text-center text-sm font-bold", isStockCritical ? "border-destructive focus-visible:ring-destructive" : "")}
+                                required
+                              />
+                              <span className="text-xs text-muted-foreground w-8">{selectedProd.unit}</span>
+                            </div>
+                          </div>
+                          {isStockCritical && (
+                            <p className="text-[10px] text-destructive mt-1 font-medium">¡Stock insuficiente!</p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                <div className="bg-muted/20 border-t border-border/50 p-4">
                   <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() => setCreateWorkerOpen(true)}
-                    title="Crear nuevo trabajador rápido"
+                    type="submit" 
+                    className="w-full h-14 text-base font-bold shadow-lg shadow-primary/20" 
+                    disabled={submitting || items.length === 0}
                   >
-                    <UserPlus className="h-4 w-4" />
+                    {submitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Check className="w-5 h-5 mr-2" />}
+                    Procesar Vale y Descontar
                   </Button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo de Vale</Label>
-                <Select value={valeType} onValueChange={(val: any) => setValeType(val)} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione tipo">
-                      {valeType === 'uso_diario' && 'Uso Diario (Devolución hoy)'}
-                      {valeType === 'cargo_personal' && 'Cargo Personal (Largo plazo)'}
-                      {valeType === 'material' && 'Material (Consumo)'}
-                      {valeType === 'epp' && 'EPP (Requiere firma legal)'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="uso_diario">Uso Diario (Devolución hoy)</SelectItem>
-                    <SelectItem value="cargo_personal">Cargo Personal (Largo plazo)</SelectItem>
-                    <SelectItem value="material">Material (Consumo)</SelectItem>
-                    <SelectItem value="epp">EPP (Requiere firma legal)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              </Card>
             </div>
-
-            {/* Items */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-base font-semibold">Ítems Entregados</Label>
-                <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Añadir Ítem
-                </Button>
-              </div>
-              
-              <div className="space-y-3">
-                {items.map((item, idx) => {
-                  const selectedProd = products.find(p => p.id === item.product_id);
-                  return (
-                    <div key={idx} className="flex gap-3 items-start bg-muted/20 p-3 rounded-lg border border-border/50">
-                      <div className="flex-1 space-y-2">
-                        <Label>Producto</Label>
-                        <Popover 
-                          open={openProducts[idx] || false} 
-                          onOpenChange={(val) => setOpenProducts({...openProducts, [idx]: val})}
-                        >
-                        {/* @ts-ignore Base UI render prop */}
-                        <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between font-normal" />}>
-                            {item.product_id
-                              ? products.find((p) => p.id === item.product_id)?.name
-                              : "Buscar producto en bodega..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0">
-                          <Command>
-                            <CommandInput placeholder="Buscar por nombre o código..." />
-                            <CommandList>
-                              <CommandEmpty>No se encontró el producto.</CommandEmpty>
-                              <CommandGroup>
-                                {filteredProducts.map((product) => (
-                                  <CommandItem
-                                    key={product.id}
-                                    value={product.name}
-                                    onSelect={() => {
-                                      handleItemChange(idx, 'product_id', product.id);
-                                      setOpenProducts({...openProducts, [idx]: false});
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        item.product_id === product.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {product.name} 
-                                    <span className="text-muted-foreground ml-2 text-xs">
-                                      (Stock: {product.stock} {product.unit})
-                                    </span>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      
-                      {selectedProd && (
-                        <div className="flex items-center gap-2 mt-1.5 ml-1">
-                          <span className={cn("text-xs font-semibold", selectedProd.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
-                            Stock actual: {selectedProd.stock} {selectedProd.unit}
-                          </span>
-                          <Button 
-                            type="button" 
-                            variant="link" 
-                            size="sm" 
-                            className="h-auto p-0 text-xs text-primary"
-                            onClick={() => {
-                              setQuickAdjustProduct(selectedProd);
-                              setQuickAdjustQty(1);
-                            }}
-                          >
-                            <Plus className="w-3 h-3 mr-0.5" /> Ajustar Stock
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="w-24 space-y-2">
-                      <Label>Cantidad</Label>
-                      <Input 
-                        type="number" 
-                        min="1" 
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value))}
-                        className={selectedProd && selectedProd.stock < item.quantity ? "border-destructive/50 ring-destructive/20 focus-visible:ring-destructive/50" : ""}
-                        required
-                      />
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0 mt-7"
-                      onClick={() => handleRemoveItem(idx)}
-                      disabled={items.length === 1}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notas (Opcional)</Label>
-              <Input 
-                placeholder="Ej. Vale entregado firmado por Supervisor X..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-              Guardar y Descontar Stock
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </form>
 
       {/* Fast Create Worker Dialog */}
       <Dialog open={createWorkerOpen} onOpenChange={setCreateWorkerOpen}>
