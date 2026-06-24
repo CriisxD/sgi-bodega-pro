@@ -120,9 +120,9 @@ export default function NuevoValePage() {
   const filteredProducts = useMemo(() => {
     let filtered = products;
     if (valeType === 'epp') {
-      filtered = filtered.filter((p) => p.category?.type === 'epp');
+      filtered = filtered.filter((p) => p.category?.type?.toLowerCase() === 'epp');
     } else {
-      filtered = filtered.filter((p) => p.category?.type === 'material' || p.category?.type === 'consumible');
+      filtered = filtered.filter((p) => p.category?.type?.toLowerCase() !== 'epp');
     }
     if (productSearch) {
       const search = productSearch.toLowerCase();

@@ -66,8 +66,8 @@ export default function DigitarValeFisicoPage() {
   }, [supabase]);
 
   const filteredProducts = products.filter(p => {
-    if (valeType === 'epp') return p.category?.type === 'epp';
-    return ['material', 'insumo', 'herramienta', 'consumible'].includes(p.category?.type?.toLowerCase() || '') || !p.category;
+    if (valeType === 'epp') return p.category?.type?.toLowerCase() === 'epp';
+    return p.category?.type?.toLowerCase() !== 'epp';
   });
 
   const handleSelectProduct = (productId: string) => {
