@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/supabase/auth-context';
+import { usePersistentState } from '@/hooks/use-persistent-state';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export default function DevolucionesPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [tabFilter, setTabFilter] = useState<TabFilter>('activos');
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = usePersistentState<'cards' | 'table'>('devoluciones-viewMode', 'cards');
   
   // Return Modal states
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
