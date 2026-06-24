@@ -77,13 +77,17 @@ export default function DigitarValeFisicoPage() {
   };
 
   const handleCreateWorker = async () => {
-    if (!newWorkerData.name || !newWorkerData.rut) return toast.error('Nombre y RUT son obligatorios');
+    if (!newWorkerData.name) return toast.error('El nombre es obligatorio');
     if (newWorkerData.is_external && !newWorkerData.company) return toast.error('La empresa es obligatoria para externos');
     setCreatingWorker(true);
+    
+    // Asignar RUT temporal si está vacío
+    const rutToSave = newWorkerData.rut.trim() || `TEMP-${Math.floor(Math.random() * 16777215).toString(16).padEnd(6, '0').toUpperCase()}`;
+    
     try {
       const { data, error } = await supabase.from('workers').insert({
         name: newWorkerData.name,
-        rut: newWorkerData.rut,
+        rut: rutToSave,
         area: newWorkerData.is_external ? 'Externo' : (newWorkerData.area || 'General'),
         position: newWorkerData.is_external ? 'Contratista/Visita' : 'Operador',
         is_external: newWorkerData.is_external,
