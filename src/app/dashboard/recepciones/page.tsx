@@ -82,7 +82,7 @@ export default function RecepcionesPage() {
   const openEditModal = (rec: any) => {
     setEditingReception(rec);
     setEditForm({
-      supplier: rec.supplier || '',
+      supplier: rec.supplier_name || rec.supplier || '',
       supplier_rut: rec.supplier_rut || '',
       invoice: rec.invoice || '',
       invoice_date: rec.invoice_date || '',
@@ -100,6 +100,7 @@ export default function RecepcionesPage() {
         .from('receptions')
         .update({
           supplier: editForm.supplier,
+          supplier_name: editForm.supplier,
           supplier_rut: editForm.supplier_rut,
           invoice: editForm.invoice,
           invoice_date: editForm.invoice_date || null,
@@ -420,7 +421,7 @@ export default function RecepcionesPage() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="bg-warning/10 border border-warning/20 p-3 rounded-md text-sm text-warning-foreground mb-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-md text-sm text-amber-500 mb-4">
                <strong>Nota:</strong> Solo puedes editar los datos del documento. Si hubo un error en las cantidades o productos recibidos, debes eliminar la recepción completa y volver a registrarla para evitar descuadres de stock.
             </div>
 
