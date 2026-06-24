@@ -463,11 +463,11 @@ export default function TrabajadoresPage() {
     }
   };
 
-  const handleBulkDeactivate = async () => {
+  const handleBulkToggleActive = async (setActive: boolean) => {
     try {
-      const { error } = await supabase.from('workers').update({ active: false }).in('id', Array.from(selectedIds));
+      const { error } = await supabase.from('workers').update({ active: setActive }).in('id', Array.from(selectedIds));
       if (error) throw error;
-      toast.success(`${selectedIds.size} trabajadores desactivados`);
+      toast.success(`${selectedIds.size} trabajadores ${setActive ? 'activados' : 'desactivados'}`);
       setSelectedIds(new Set());
       fetchWorkers();
     } catch (e: any) {
@@ -475,12 +475,16 @@ export default function TrabajadoresPage() {
     }
   };
 
-  const handleBulkActivate = async () => {
+  const handleDeleteWorker = async (id: string, name: string) => {
+    if (!confirm(`¿Eliminar permanentemente a ${name}?`)) return;
     try {
-      const { error } = await supabase.from('workers').update({ active: true }).in('id', Array.from(selectedIds));
-      if (error) throw error;
-      toast.success(`${selectedIds.size} trabajadores activados`);
-      setSelectedIds(new Set());
+      const { error } = await supabase.from('workers').delete().eq('id', id);
+      if (error) {
+        await supabase.from('workers').update({ active: false }).eq('id', id);
+        toast.success(`Trabajador ${name} desactivado (tiene historial)`);
+      } else {
+        toast.success(`Trabajador ${name} eliminado`);
+      }
       fetchWorkers();
     } catch (e: any) {
       toast.error('Error: ' + e.message);
@@ -785,12 +789,15 @@ export default function TrabajadoresPage() {
             <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
               Deseleccionar
             </Button>
-            <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10" onClick={handleBulkActivate}>
-              Activar
-            </Button>
-            <Button size="sm" variant="outline" className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleBulkDeactivate}>
-              Desactivar
-            </Button>
+            {Array.from(selectedIds).some(id => workers.find(w => w.id === id)?.active) ? (
+              <Button size="sm" variant="outline" className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={() => handleBulkToggleActive(false)}>
+                Desactivar
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10" onClick={() => handleBulkToggleActive(true)}>
+                Activar
+              </Button>
+            )}
             <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
               <Trash2 className="w-4 h-4 mr-1.5" /> Eliminar
             </Button>
@@ -882,6 +889,15 @@ export default function TrabajadoresPage() {
                         >
                           {worker.active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteWorker(worker.id, worker.name)}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -958,6 +974,15 @@ export default function TrabajadoresPage() {
                         title={worker.active ? 'Desactivar' : 'Activar'}
                       >
                         {worker.active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteWorker(worker.id, worker.name)}
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

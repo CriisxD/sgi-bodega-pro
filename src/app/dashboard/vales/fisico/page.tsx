@@ -24,6 +24,7 @@ export default function DigitarValeFisicoPage() {
   const [submitting, setSubmitting] = useState(false);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   
   const [workerId, setWorkerId] = useState('');
   const [valeType, setValeType] = useState('uso_diario');
@@ -39,6 +40,11 @@ export default function DigitarValeFisicoPage() {
   const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '', is_external: false, company: '' });
   const [creatingWorker, setCreatingWorker] = useState(false);
 
+  // Fast Create Product state
+  const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [newProductData, setNewProductData] = useState({ name: '', category_id: '', type: 'material', min_stock: 0, unit: 'un' });
+  const [creatingProduct, setCreatingProduct] = useState(false);
+
   // Quick Stock Adjust
   const [quickAdjustProduct, setQuickAdjustProduct] = useState<Product | null>(null);
   const [quickAdjustQty, setQuickAdjustQty] = useState<number | ''>(1);
@@ -46,12 +52,14 @@ export default function DigitarValeFisicoPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [wRes, pRes] = await Promise.all([
+      const [wRes, pRes, cRes] = await Promise.all([
         supabase.from('workers').select('*').eq('active', true).order('name'),
-        supabase.from('products').select('*, category:categories(*)').eq('active', true).order('name')
+        supabase.from('products').select('*, category:categories(*)').eq('active', true).order('name'),
+        supabase.from('categories').select('*').order('name')
       ]);
       setWorkers(wRes.data || []);
       setProducts(pRes.data || []);
+      setCategories(cRes.data || []);
       setLoadingData(false);
     };
     fetchData();
@@ -114,6 +122,43 @@ export default function DigitarValeFisicoPage() {
       toast.error('Error al crear trabajador: ' + e.message);
     } finally {
       setCreatingWorker(false);
+    }
+  };
+
+  const handleCreateProduct = async () => {
+    if (!newProductData.name) return toast.error('El nombre es obligatorio');
+    
+    // Assign generic category if none selected
+    let targetCategoryId = newProductData.category_id;
+    if (!targetCategoryId) {
+      const typeStr = newProductData.type === 'epp' ? 'epp' : newProductData.type === 'herramienta' ? 'herramienta' : 'material';
+      let cat = categories.find(c => c.type === typeStr && c.name.toLowerCase() === 'general');
+      if (!cat) cat = categories.find(c => c.type === typeStr);
+      if (cat) targetCategoryId = cat.id;
+    }
+
+    setCreatingProduct(true);
+    try {
+      const { data, error } = await supabase.from('products').insert({
+        name: newProductData.name.trim(),
+        category_id: targetCategoryId || null,
+        stock: 0,
+        min_stock: newProductData.min_stock || 0,
+        unit: newProductData.unit || 'un',
+        active: true
+      }).select('*, category:categories(*)').single();
+      
+      if (error) throw error;
+      
+      setProducts([...products, data].sort((a, b) => a.name.localeCompare(b.name)));
+      handleSelectProduct(data.id);
+      setCreateProductOpen(false);
+      setNewProductData({ name: '', category_id: '', type: 'material', min_stock: 0, unit: 'un' });
+      toast.success('Producto creado y añadido al vale');
+    } catch (e: any) {
+      toast.error('Error al crear producto: ' + e.message);
+    } finally {
+      setCreatingProduct(false);
     }
   };
 
@@ -360,38 +405,52 @@ export default function DigitarValeFisicoPage() {
                   <Label className="text-base font-bold text-primary">Añadir Productos al Vale</Label>
                 </div>
                 
-                <Popover open={openSearch} onOpenChange={setOpenSearch}>
-                  {/* @ts-ignore Base UI render prop */}
-                  <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-12 text-base shadow-sm" />}>
-                      Buscar producto por nombre o código...
-                      <Plus className="ml-2 h-5 w-5 shrink-0 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Escribe para buscar..." autoFocus />
-                      <CommandList>
-                        <CommandEmpty>No se encontró el producto.</CommandEmpty>
-                        <CommandGroup>
-                          {filteredProducts.map((product) => (
-                            <CommandItem
-                              key={product.id}
-                              value={product.name}
-                              onSelect={() => handleSelectProduct(product.id)}
-                              className="py-3"
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium">{product.name}</span>
-                                <span className={cn("text-xs", product.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
-                                  Stock: {product.stock} {product.unit}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Popover open={openSearch} onOpenChange={setOpenSearch}>
+                      {/* @ts-ignore Base UI render prop */}
+                      <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-12 text-base shadow-sm" />}>
+                          Buscar producto por nombre o código...
+                          <Plus className="ml-2 h-5 w-5 shrink-0 opacity-50" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Escribe para buscar..." autoFocus />
+                          <CommandList>
+                            <CommandEmpty>No se encontró el producto.</CommandEmpty>
+                            <CommandGroup>
+                              {filteredProducts.map((product) => (
+                                <CommandItem
+                                  key={product.id}
+                                  value={product.name}
+                                  onSelect={() => handleSelectProduct(product.id)}
+                                  className="py-3"
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{product.name}</span>
+                                    <span className={cn("text-xs", product.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
+                                      Stock: {product.stock} {product.unit}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon"
+                    className="shrink-0 h-12 w-12"
+                    onClick={() => setCreateProductOpen(true)}
+                    title="Crear nuevo producto rápido"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -585,6 +644,64 @@ export default function DigitarValeFisicoPage() {
             <Button onClick={handleQuickAdjust} disabled={adjusting || quickAdjustQty === '' || quickAdjustQty <= 0}>
               {adjusting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Fast Create Product Dialog */}
+      <Dialog open={createProductOpen} onOpenChange={setCreateProductOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Crear Producto Rápido</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nombre del Producto *</Label>
+              <Input 
+                placeholder="Ej. Taladro Makita 18V" 
+                value={newProductData.name}
+                onChange={e => setNewProductData({...newProductData, name: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo genérico</Label>
+                <Select value={newProductData.type} onValueChange={(v: any) => setNewProductData({...newProductData, type: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="material">Material/Insumo</SelectItem>
+                    <SelectItem value="herramienta">Herramienta</SelectItem>
+                    <SelectItem value="epp">EPP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Unidad</Label>
+                <Select value={newProductData.unit} onValueChange={(v: any) => setNewProductData({...newProductData, unit: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="un">Unidad (un)</SelectItem>
+                    <SelectItem value="kg">Kilogramos (kg)</SelectItem>
+                    <SelectItem value="lt">Litros (lt)</SelectItem>
+                    <SelectItem value="m">Metros (m)</SelectItem>
+                    <SelectItem value="caja">Caja</SelectItem>
+                    <SelectItem value="par">Par</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground italic">El stock inicial será 0. Deberá ajustarse al añadirlo al vale.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateProductOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateProduct} disabled={creatingProduct || !newProductData.name}>
+              {creatingProduct ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Guardar y Añadir
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -233,10 +233,10 @@ export default function ProductosPage() {
     }
   };
 
-  const handleBulkDeactivate = async () => {
+  const handleBulkToggleActive = async (setActive: boolean) => {
     try {
-      await supabase.from('products').update({ active: false }).in('id', Array.from(selectedIds));
-      toast.success(`${selectedIds.size} productos desactivados`);
+      await supabase.from('products').update({ active: setActive }).in('id', Array.from(selectedIds));
+      toast.success(`${selectedIds.size} productos ${setActive ? 'activados' : 'desactivados'}`);
       setSelectedIds(new Set());
       fetchProducts();
     } catch (e: any) {
@@ -714,9 +714,15 @@ export default function ProductosPage() {
               <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
                 Deseleccionar
               </Button>
-              <Button size="sm" variant="outline" className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleBulkDeactivate}>
-                Desactivar
-              </Button>
+              {Array.from(selectedIds).some(id => products.find(p => p.id === id)?.active) ? (
+                <Button size="sm" variant="outline" className="text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={() => handleBulkToggleActive(false)}>
+                  Desactivar
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10" onClick={() => handleBulkToggleActive(true)}>
+                  Activar
+                </Button>
+              )}
               <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
                 <Trash2 className="w-4 h-4 mr-1" /> Eliminar
               </Button>
