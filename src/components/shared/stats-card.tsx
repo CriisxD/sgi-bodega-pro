@@ -30,6 +30,7 @@ interface StatsCardProps {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   className?: string;
+  variant?: 'default' | 'critical' | 'warning';
 }
 
 export function StatsCard({
@@ -39,15 +40,39 @@ export function StatsCard({
   icon,
   trend,
   trendValue,
+  variant = 'default',
   className,
 }: StatsCardProps) {
+  const isCritical = variant === 'critical';
+  const isWarning = variant === 'warning';
+
   return (
-    <Card className={cn('card-glow border-border/50 hover:border-primary/20 transition-colors', className)}>
+    <Card 
+      className={cn(
+        'card-glow transition-colors',
+        isCritical 
+          ? 'bg-destructive/10 border-destructive/30 hover:border-destructive/50' 
+          : isWarning
+          ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50'
+          : 'bg-card border-border/50 hover:border-primary/20',
+        className
+      )}
+    >
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground font-medium">{title}</p>
-            <p className="text-3xl font-bold tracking-tight">{value}</p>
+            <p className={cn(
+              "text-sm font-medium",
+              isCritical ? "text-destructive" : isWarning ? "text-amber-500" : "text-muted-foreground"
+            )}>
+              {title}
+            </p>
+            <p className={cn(
+              "text-3xl font-bold tracking-tight",
+              isCritical ? "text-destructive drop-shadow-sm" : isWarning ? "text-amber-500" : "text-foreground"
+            )}>
+              {value}
+            </p>
             {(description || trendValue) && (
               <div className="flex items-center gap-1.5">
                 {trend && trendValue && (
@@ -67,12 +92,20 @@ export function StatsCard({
                   </span>
                 )}
                 {description && (
-                  <span className="text-xs text-muted-foreground">{description}</span>
+                  <span className={cn(
+                    "text-xs",
+                    isCritical ? "text-destructive/80" : isWarning ? "text-amber-500/80" : "text-muted-foreground"
+                  )}>
+                    {description}
+                  </span>
                 )}
               </div>
             )}
           </div>
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+          <div className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center",
+            isCritical ? "bg-destructive/20 text-destructive" : isWarning ? "bg-amber-500/20 text-amber-500" : "bg-primary/10 text-primary"
+          )}>
             {iconMap[icon] || <Package className="w-5 h-5" />}
           </div>
         </div>

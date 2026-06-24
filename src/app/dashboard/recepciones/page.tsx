@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Search, PackagePlus, Eye, FileEdit, Trash2, Save, Download } from 'lucide-react';
 import Papa from 'papaparse';
 import { format } from 'date-fns';
@@ -25,6 +26,13 @@ export default function RecepcionesPage() {
   const [receptions, setReceptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Export Dialog State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportRange, setExportRange] = useState('este_mes');
+  const [exportMonth, setExportMonth] = useState(new Date().getMonth().toString());
+  const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
+  const [isExporting, setIsExporting] = useState(false);
 
   // Dialogs State
   const [viewingReception, setViewingReception] = useState<any | null>(null);
@@ -162,37 +170,79 @@ export default function RecepcionesPage() {
     }
   };
 
-  const handleExportCSV = () => {
-    if (filteredReceptions.length === 0) {
-      toast.error('No hay recepciones para exportar');
-      return;
+  const processExport = async () => {
+    setIsExporting(true);
+    try {
+      let query = supabase
+        .from('receptions')
+        .select(`
+          *,
+          receiver:profiles!receptions_received_by_fkey(full_name),
+          items:reception_items(*, product:products(name, unit))
+        `)
+        .order('created_at', { ascending: false });
+
+      if (exportRange !== 'todo') {
+        let startDate: Date;
+        let endDate: Date;
+        
+        const now = new Date();
+        if (exportRange === 'este_mes') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        } else if (exportRange === 'mes_pasado') {
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        } else { // mes_especifico
+          startDate = new Date(parseInt(exportYear), parseInt(exportMonth), 1);
+          endDate = new Date(parseInt(exportYear), parseInt(exportMonth) + 1, 0, 23, 59, 59, 999);
+        }
+        
+        query = query
+          .gte('created_at', startDate.toISOString())
+          .lte('created_at', endDate.toISOString());
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        toast.error('No se encontraron recepciones en este periodo');
+        setIsExporting(false);
+        return;
+      }
+
+      const dataToExport = data.map(r => ({
+        Fecha: format(new Date(r.created_at), "dd/MM/yyyy HH:mm"),
+        Proveedor: r.supplier_name || r.supplier,
+        RUT: r.supplier_rut || '',
+        Tipo_Documento: docTypeLabel(r.document_type),
+        N_Documento: r.invoice || 'Sin doc.',
+        Fecha_Documento: r.invoice_date ? format(new Date(r.invoice_date + 'T12:00:00'), "dd/MM/yyyy") : '',
+        Recibido_Por: r.receiver?.full_name || '',
+        Neto: r.net_amount || 0,
+        IVA: r.iva_amount || 0,
+        Total: r.total_amount || 0,
+        Cantidad_Items: r.items?.length || 0,
+        Total_Unidades: r.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0
+      }));
+
+      const csvContent = Papa.unparse(dataToExport);
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Recepciones_${exportRange}_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Reporte exportado exitosamente');
+      setIsExportModalOpen(false);
+    } catch (error: any) {
+      toast.error('Error al exportar: ' + error.message);
+    } finally {
+      setIsExporting(false);
     }
-
-    const dataToExport = filteredReceptions.map(r => ({
-      Fecha: format(new Date(r.created_at), "dd/MM/yyyy HH:mm"),
-      Proveedor: r.supplier_name || r.supplier,
-      RUT: r.supplier_rut || '',
-      Tipo_Documento: docTypeLabel(r.document_type),
-      N_Documento: r.invoice || 'Sin doc.',
-      Fecha_Documento: r.invoice_date ? format(new Date(r.invoice_date + 'T12:00:00'), "dd/MM/yyyy") : '',
-      Recibido_Por: r.receiver?.full_name || '',
-      Neto: r.net_amount || 0,
-      IVA: r.iva_amount || 0,
-      Total: r.total_amount || 0,
-      Cantidad_Items: r.items?.length || 0,
-      Total_Unidades: r.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0
-    }));
-
-    const csvContent = Papa.unparse(dataToExport);
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Recepciones_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('Historial exportado exitosamente');
   };
 
   return (
@@ -223,7 +273,7 @@ export default function RecepcionesPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="h-9" onClick={handleExportCSV}>
+            <Button variant="outline" className="h-9" onClick={() => setIsExportModalOpen(true)}>
               <Download className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Exportar</span> CSV
             </Button>
@@ -490,6 +540,80 @@ export default function RecepcionesPage() {
             <Button onClick={handleSaveEdit} disabled={savingEdit}>
               {savingEdit ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Modal */}
+      <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-primary" />
+              Exportar Recepciones
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Periodo a exportar</Label>
+              <Select value={exportRange} onValueChange={(val) => val && setExportRange(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="este_mes">Este mes</SelectItem>
+                  <SelectItem value="mes_pasado">Mes pasado</SelectItem>
+                  <SelectItem value="mes_especifico">Mes específico</SelectItem>
+                  <SelectItem value="todo">Todo el historial (Lento)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {exportRange === 'mes_especifico' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Mes</Label>
+                  <Select value={exportMonth} onValueChange={(val) => val && setExportMonth(val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Mes" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[200px]">
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          <span className="capitalize">{format(new Date(2024, i, 1), 'MMMM', { locale: es })}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Año</Label>
+                  <Select value={exportYear} onValueChange={(val) => val && setExportYear(val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Año" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const y = new Date().getFullYear() - i;
+                        return <SelectItem key={y} value={y.toString()}>{y}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground mt-2">
+              Se descargará un archivo CSV con todas las recepciones y sus totales para el periodo seleccionado.
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>Cancelar</Button>
+            <Button onClick={processExport} disabled={isExporting}>
+              {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              {isExporting ? 'Generando...' : 'Descargar CSV'}
             </Button>
           </DialogFooter>
         </DialogContent>

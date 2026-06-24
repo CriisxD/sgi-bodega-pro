@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Undo2, Loader2, Wrench, FileArchive, Plus, CheckCircle, ArrowLeft, ArrowRight, PenTool, Minus, Package } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Undo2, Loader2, Wrench, FileArchive, Plus, CheckCircle, ArrowLeft, ArrowRight, PenTool, Minus, Package, LayoutGrid, List, Trash2, Download, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -32,6 +33,7 @@ export default function DevolucionesPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [tabFilter, setTabFilter] = useState<TabFilter>('activos');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   
   // Return Modal states
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
@@ -250,6 +252,73 @@ export default function DevolucionesPage() {
     } finally {
       setAssigning(false);
     }
+  };
+
+  const handleDelete = async (assignment: any) => {
+    if (!profile) return;
+    const isActivo = assignment.status === 'activo';
+    const msg = isActivo 
+      ? '¿Estás seguro de eliminar este préstamo activo? Esto cancelará el préstamo y retornará el stock automáticamente. Esta acción no se puede deshacer.'
+      : '¿Estás seguro de eliminar este registro histórico? Esta acción no se puede deshacer.';
+      
+    if (!confirm(msg)) return;
+    
+    setLoading(true);
+    try {
+      if (isActivo) {
+        await supabase.rpc('increase_stock', {
+          p_product_id: assignment.product_id,
+          p_quantity: assignment.quantity || 1,
+        });
+        await supabase.from('stock_movements').insert({
+          product_id: assignment.product_id,
+          type: 'entrada',
+          quantity: assignment.quantity || 1,
+          reference_type: 'devolucion',
+          reference_id: assignment.id,
+          notes: `Reversión por eliminación de préstamo activo`,
+          created_by: profile.id,
+        });
+      }
+      
+      const { error } = await supabase.from('tool_assignments').delete().eq('id', assignment.id);
+      if (error) throw error;
+      
+      toast.success('Registro eliminado exitosamente');
+      fetchAssignments();
+      if (isActivo) fetchWorkersAndTools();
+      else setLoading(false);
+    } catch (e: any) {
+      toast.error('Error al eliminar: ' + e.message);
+      setLoading(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    import('papaparse').then((Papa) => {
+      const dataToExport = filteredAssignments.map(a => ({
+        ID: a.id,
+        Ítem: a.product?.name,
+        Cantidad: a.quantity || 1,
+        Trabajador: a.worker?.name,
+        RUT: a.worker?.rut,
+        Estado: a.status,
+        Tipo: a.vale ? (a.vale.type === 'cargo_personal' ? 'Cargo Personal' : 'Uso Diario') : 'Asignación Directa',
+        Fecha_Préstamo: a.assigned_at ? format(new Date(a.assigned_at), "dd/MM/yyyy HH:mm") : '',
+        Fecha_Devolución: a.returned_at ? format(new Date(a.returned_at), "dd/MM/yyyy HH:mm") : '',
+        Notas: a.condition_notes || ''
+      }));
+      
+      const csvContent = Papa.default.unparse(dataToExport);
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Prestamos_Devoluciones_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Exportado exitosamente');
+    });
   };
 
   if (loading) {
@@ -556,26 +625,48 @@ export default function DevolucionesPage() {
           </Dialog>
         </div>
       </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
-        {([
-          { key: 'activos' as const, label: 'Activos' },
-          { key: 'devueltos' as const, label: 'Devueltos' },
-          { key: 'todos' as const, label: 'Todos' },
-        ]).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setTabFilter(tab.key)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              tabFilter === tab.key
-                ? 'bg-background shadow-sm text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+    
+      {/* Tabs and View Toggles */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+          {([
+            { key: 'activos' as const, label: 'Activos' },
+            { key: 'devueltos' as const, label: 'Devueltos' },
+            { key: 'todos' as const, label: 'Todos' },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setTabFilter(tab.key)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                tabFilter === tab.key
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="w-4 h-4 mr-2" /> <span className="hidden sm:inline">Exportar CSV</span>
+          </Button>
+          <div className="flex bg-muted/50 p-1 rounded-lg">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {filteredAssignments.length === 0 ? (
@@ -598,92 +689,173 @@ export default function DevolucionesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {filteredAssignments.map((assignment) => (
-            <Card
-              key={assignment.id}
-              className={`card-glow border-border/50 transition-all ${
-                assignment.status === 'activo' ? 'hover:border-primary/20 cursor-pointer' : 'opacity-80'
-              }`}
-              onClick={() => assignment.status === 'activo' && setSelectedAssignment(assignment)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                      assignment.status === 'devuelto' ? 'bg-success/10 text-success' 
-                      : assignment.status === 'en_mantencion' ? 'bg-warning/10 text-warning'
-                      : assignment.status === 'dado_de_baja' ? 'bg-destructive/10 text-destructive'
-                      : 'bg-primary/10 text-primary'
-                    }`}>
-                      {assignment.status === 'devuelto' ? <CheckCircle className="w-6 h-6" /> : <Wrench className="w-6 h-6" />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-bold text-lg font-mono">
-                          {assignment.product?.name}
-                        </span>
-                        {(assignment.quantity || 1) > 1 && (
-                          <Badge variant="secondary" className="font-mono">
-                            x{assignment.quantity || 1}
-                          </Badge>
-                        )}
-                        <Badge
-                          variant="outline"
-                          className={
-                            assignment.status === 'devuelto'
-                              ? 'bg-success/15 text-success'
-                              : assignment.vale?.type === 'cargo_personal'
-                              ? 'bg-chart-3/15 text-chart-3'
-                              : 'bg-chart-2/15 text-chart-2'
-                          }
-                        >
-                          {assignment.status === 'devuelto' 
-                            ? 'Devuelto' 
-                            : assignment.status === 'en_mantencion'
-                            ? 'En Mantención'
-                            : assignment.status === 'dado_de_baja'
-                            ? 'Dado de Baja'
-                            : assignment.vale 
-                              ? (assignment.vale.type === 'cargo_personal' ? 'Cargo Personal' : 'Uso Diario') 
-                              : 'Asignación Directa'
-                          }
-                        </Badge>
+        viewMode === 'cards' ? (
+          <div className="grid gap-4">
+            {filteredAssignments.map((assignment) => (
+              <Card
+                key={assignment.id}
+                className={`card-glow border-border/50 transition-all ${
+                  assignment.status === 'activo' ? 'hover:border-primary/20 cursor-pointer' : 'opacity-80'
+                }`}
+                onClick={() => assignment.status === 'activo' && setSelectedAssignment(assignment)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                        assignment.status === 'devuelto' ? 'bg-success/10 text-success' 
+                        : assignment.status === 'en_mantencion' ? 'bg-warning/10 text-warning'
+                        : assignment.status === 'dado_de_baja' ? 'bg-destructive/10 text-destructive'
+                        : 'bg-primary/10 text-primary'
+                      }`}>
+                        {assignment.status === 'devuelto' ? <CheckCircle className="w-6 h-6" /> : <Wrench className="w-6 h-6" />}
                       </div>
-                      <p className="text-sm">
-                        <span className="text-muted-foreground">Prestado a:</span>{' '}
-                        <span className="font-medium">{assignment.worker?.name}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {assignment.vale ? `Vale #${assignment.vale.vale_number} · ` : ''} 
-                        {format(new Date(assignment.assigned_at), "d MMM HH:mm", {
-                          locale: es,
-                        })}
-                        {assignment.status === 'devuelto' && assignment.returned_at && (
-                          <> · Devuelto {format(new Date(assignment.returned_at), "d MMM HH:mm", { locale: es })}</>
-                        )}
-                      </p>
-                      {assignment.condition_notes && (
-                        <p className="text-xs text-muted-foreground mt-1 italic">
-                          Nota: {assignment.condition_notes}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-bold text-lg font-mono">
+                            {assignment.product?.name}
+                          </span>
+                          {(assignment.quantity || 1) > 1 && (
+                            <Badge variant="secondary" className="font-mono">
+                              x{assignment.quantity || 1}
+                            </Badge>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={
+                              assignment.status === 'devuelto'
+                                ? 'bg-success/15 text-success'
+                                : assignment.vale?.type === 'cargo_personal'
+                                ? 'bg-chart-3/15 text-chart-3'
+                                : 'bg-chart-2/15 text-chart-2'
+                            }
+                          >
+                            {assignment.status === 'devuelto' 
+                              ? 'Devuelto' 
+                              : assignment.status === 'en_mantencion'
+                              ? 'En Mantención'
+                              : assignment.status === 'dado_de_baja'
+                              ? 'Dado de Baja'
+                              : assignment.vale 
+                                ? (assignment.vale.type === 'cargo_personal' ? 'Cargo Personal' : 'Uso Diario') 
+                                : 'Asignación Directa'
+                            }
+                          </Badge>
+                        </div>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Prestado a:</span>{' '}
+                          <span className="font-medium">{assignment.worker?.name}</span>
                         </p>
-                      )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {assignment.vale ? `Vale #${assignment.vale.vale_number} · ` : ''} 
+                          {format(new Date(assignment.assigned_at), "d MMM HH:mm", {
+                            locale: es,
+                          })}
+                          {assignment.status !== 'activo' && assignment.returned_at && (
+                            <> · Devuelto {format(new Date(assignment.returned_at), "d MMM HH:mm", { locale: es })}</>
+                          )}
+                        </p>
+                        {assignment.condition_notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">
+                            Nota: {assignment.condition_notes}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  {assignment.status === 'activo' && (
-                    <div className="text-right">
-                      <Button size="sm" className="mt-2" variant="outline">
-                        <Undo2 className="w-4 h-4 mr-1" />
-                        Recibir
+                    <div className="flex flex-col gap-2 items-end">
+                      {assignment.status === 'activo' && (
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedAssignment(assignment); }}>
+                          <Undo2 className="w-4 h-4 mr-1" />
+                          Recibir
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); handleDelete(assignment); }}>
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border border-border/50 overflow-hidden bg-card">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Ítem</TableHead>
+                  <TableHead>Trabajador</TableHead>
+                  <TableHead>Préstamo</TableHead>
+                  <TableHead>Devolución</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAssignments.map((assignment) => (
+                  <TableRow key={assignment.id} className={assignment.status !== 'activo' ? 'opacity-80' : ''}>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          assignment.status === 'devuelto'
+                            ? 'bg-success/15 text-success'
+                            : assignment.status === 'en_mantencion'
+                            ? 'bg-warning/15 text-warning'
+                            : assignment.status === 'dado_de_baja'
+                            ? 'bg-destructive/15 text-destructive'
+                            : 'bg-primary/15 text-primary'
+                        }
+                      >
+                        {assignment.status === 'devuelto' ? 'Devuelto' 
+                         : assignment.status === 'en_mantencion' ? 'En Mantención'
+                         : assignment.status === 'dado_de_baja' ? 'Dado de Baja'
+                         : 'Activo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{assignment.product?.name}</div>
+                      {(assignment.quantity || 1) > 1 && <div className="text-xs text-muted-foreground">x{assignment.quantity} unidades</div>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{assignment.worker?.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {assignment.vale ? (assignment.vale.type === 'cargo_personal' ? 'Cargo Personal' : 'Uso Diario') : 'Asignación Directa'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <div>{format(new Date(assignment.assigned_at), "d MMM yyyy", { locale: es })}</div>
+                      <div className="text-xs text-muted-foreground">{format(new Date(assignment.assigned_at), "HH:mm", { locale: es })}</div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {assignment.returned_at ? (
+                        <>
+                          <div>{format(new Date(assignment.returned_at), "d MMM yyyy", { locale: es })}</div>
+                          <div className="text-xs text-muted-foreground">{format(new Date(assignment.returned_at), "HH:mm", { locale: es })}</div>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground italic">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {assignment.status === 'activo' && (
+                          <Button size="sm" variant="outline" onClick={() => setSelectedAssignment(assignment)}>
+                            Recibir
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(assignment)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
       )}
 
       {/* Return Dialog */}

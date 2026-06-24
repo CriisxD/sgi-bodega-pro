@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Zap,
+  Search,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -231,29 +232,89 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* ═══════════════════════════════════════════
-          Welcome – visible on all screens
+          Acción Inmediata (Hero Section)
           ═══════════════════════════════════════════ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Hola, {profile?.full_name?.split(' ')[0]} 👋
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
-          </p>
-        </div>
+      <div className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold text-muted-foreground uppercase tracking-wider hidden sm:block">
+          ¿Qué hacer hoy?
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Main Action Call */}
+          <div className="md:col-span-2">
+            <Card className="bg-gradient-to-br from-primary/10 via-background to-background border-primary/30 h-full overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                {profile?.role === 'bodeguero' ? <PackageCheck className="w-32 h-32" /> : <Plus className="w-32 h-32" />}
+              </div>
+              <CardContent className="p-6 sm:p-8 flex flex-col justify-center h-full relative z-10">
+                {profile?.role === 'bodeguero' ? (
+                  <>
+                    <h3 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
+                      {stats.valesPendientes > 0 ? `Tienes ${stats.valesPendientes} vales pendientes` : 'Todo al día en despacho'}
+                    </h3>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                      {stats.valesPendientes > 0 
+                        ? 'Hay trabajadores esperando sus materiales. Prioriza los despachos ahora mismo.' 
+                        : 'No hay vales en cola. Puedes aprovechar de revisar el stock o recepcionar mercadería.'}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {stats.valesPendientes > 0 ? (
+                        <Button size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/20" onClick={() => router.push('/dashboard/despacho')}>
+                          <PackageCheck className="w-5 h-5 mr-2" />
+                          Despachar Vales
+                        </Button>
+                      ) : (
+                        <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-background" onClick={() => router.push('/dashboard/stock')}>
+                          <Search className="w-5 h-5 mr-2" />
+                          Revisar Stock
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-2xl sm:text-3xl font-bold mb-2 text-foreground">
+                      Solicitar Materiales
+                    </h3>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                      Crea un nuevo vale para solicitar herramientas, EPP o materiales para tu equipo de trabajo.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <Button size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/20" onClick={() => router.push('/dashboard/vales/nuevo')}>
+                        <Plus className="w-5 h-5 mr-2" />
+                        Digitar Nuevo Vale
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Desktop-only "Crear Nuevo Vale" button (hidden for bodeguero) */}
-        {profile?.role !== 'bodeguero' && (
-          <Button
-            onClick={() => router.push('/dashboard/vales/nuevo')}
-            size="lg"
-            className="hidden sm:flex w-auto shadow-lg shadow-primary/25 font-bold h-11 text-base"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Crear Nuevo Vale
-          </Button>
-        )}
+          {/* Quick Alerts Summary (Desktop) */}
+          <div className="hidden md:flex flex-col gap-3">
+             {alerts.length > 0 ? (
+               alerts.slice(0,3).map(alert => (
+                 <Link key={alert.href} href={alert.href} className="flex-1">
+                   <Card className="hover:bg-muted/50 transition-colors cursor-pointer border-border/50 h-full">
+                     <CardContent className="p-4 flex flex-col justify-center h-full">
+                       <div className="flex items-center gap-3 mb-2">
+                         <div className={`w-2 h-2 rounded-full ${alert.color.replace('text-', 'bg-')}`} />
+                         <span className="text-sm font-medium leading-tight">{alert.text}</span>
+                       </div>
+                       <span className={`text-2xl font-bold ${alert.color}`}>{alert.count}</span>
+                     </CardContent>
+                   </Card>
+                 </Link>
+               ))
+             ) : (
+                <Card className="border-border/50 h-full flex flex-col items-center justify-center p-6 text-center bg-muted/20">
+                  <span className="text-3xl mb-2">🎉</span>
+                  <p className="text-sm text-muted-foreground font-medium">Sin alertas urgentes hoy</p>
+                </Card>
+             )}
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════
@@ -404,6 +465,7 @@ export default function DashboardPage() {
           value={stats.valesPendientes}
           icon="file-text"
           description="por procesar"
+          variant={stats.valesPendientes > 0 ? 'warning' : 'default'}
         />
         <StatsCard
           title="Vales Hoy"
@@ -416,6 +478,7 @@ export default function DashboardPage() {
           value={stats.stockBajo}
           icon="alert-triangle"
           description="necesitan reposición"
+          variant={stats.stockBajo > 0 ? 'critical' : 'default'}
         />
 
         {/* Bodeguero and Admin see devoluciones */}
@@ -425,6 +488,7 @@ export default function DashboardPage() {
             value={stats.devolucionesPendientes}
             icon="undo"
             description="pendientes"
+            variant={stats.devolucionesPendientes > 0 ? 'warning' : 'default'}
           />
         )}
 
@@ -468,9 +532,10 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {recentVales.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No hay vales recientes</p>
+              <div className="text-center py-10 text-muted-foreground text-sm bg-muted/10 rounded-xl border border-dashed border-border/50">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                <p className="font-medium text-foreground">No hay vales recientes</p>
+                <p className="text-xs mt-1">Los vales creados aparecerán aquí</p>
               </div>
             ) : (
               recentVales.map((vale) => (

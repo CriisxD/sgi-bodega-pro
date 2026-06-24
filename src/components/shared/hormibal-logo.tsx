@@ -1,25 +1,17 @@
 export function HormibalLogo({ className = '', withText = true }: { className?: string, withText?: boolean }) {
   return (
-    <svg viewBox="0 0 200 230" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Left half - Yellow */}
-      <path d="M40 60 L70 43 L70 83 L100 66 L100 106 L70 123 L70 163 L40 180 Z" fill="#D4D916"/>
-      
-      {/* Right half - Cyan */}
-      <path d="M160 60 L160 180 L130 163 L130 123 L100 106 L100 66 L130 83 L130 43 Z" fill="#00B4D8"/>
-      
-      {/* Floating Top Diamond - Yellow */}
-      <path d="M100 9 L130 26 L100 43 L70 26 Z" fill="#D4D916"/>
-
+    <div className={`flex flex-col items-center justify-center ${className}`}>
+      <img src="/logo.png" alt="Hormibal Logo" className={withText ? "w-full max-w-[120px] object-contain drop-shadow-md" : "w-full h-full object-contain drop-shadow-md"} style={{ mixBlendMode: 'multiply' }} />
       {withText && (
-        <>
-          <text x="100" y="205" textAnchor="middle" fontFamily="var(--font-sans)" fontWeight="800" fontSize="24" letterSpacing="3" fill="#808080">
+        <div className="flex flex-col items-center mt-2 text-center">
+          <span className="font-extrabold text-[22px] tracking-[0.2em] text-[#808080] leading-none">
             HORMIBAL
-          </text>
-          <text x="100" y="222" textAnchor="middle" fontFamily="var(--font-sans)" fontWeight="400" fontSize="9" letterSpacing="2" fill="#666666">
+          </span>
+          <span className="font-normal text-[8px] tracking-[0.15em] text-[#666666] mt-1">
             PREFABRICADOS DE HORMIGÓN
-          </text>
-        </>
+          </span>
+        </div>
       )}
-    </svg>
+    </div>
   );
 }
