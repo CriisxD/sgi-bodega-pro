@@ -247,132 +247,133 @@ export default function RecepcionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">Recepciones de Stock</h2>
-          <p className="text-muted-foreground text-sm">
-            Ingreso de mercadería y actualización de inventario.
-          </p>
+      {/* Header and Action Bar */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 className="text-xl font-bold">Recepciones de Stock</h2>
+            <p className="text-muted-foreground text-sm">
+              Ingreso de mercadería y actualización de inventario.
+            </p>
+          </div>
+          <Button onClick={() => router.push('/dashboard/recepciones/nuevo')} className="w-full sm:w-auto shadow-md">
+            <PackagePlus className="w-4 h-4 mr-2" />
+            Nueva Recepción
+          </Button>
         </div>
-        <Button onClick={() => router.push('/dashboard/recepciones/nuevo')}>
-          <PackagePlus className="w-4 h-4 mr-2" />
-          Nueva Recepción
-        </Button>
+
+        {/* Action Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center bg-card p-2 rounded-lg border border-border/50 shadow-sm">
+          <div className="relative w-full sm:w-80 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar proveedor o documento..."
+              className="pl-9 h-10 border-none shadow-none focus-visible:ring-1 focus-visible:ring-primary/50"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex-1"></div>
+          <Button variant="outline" className="w-full sm:w-auto h-9" onClick={() => setIsExportModalOpen(true)}>
+            <Download className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Exportar</span> CSV
+          </Button>
+        </div>
       </div>
 
-      <Card className="card-glow border-border/50">
-        <CardHeader className="pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <CardTitle className="text-base">Historial de Recepciones</CardTitle>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar proveedor o doc..."
-                className="pl-9 h-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Button variant="outline" className="h-9" onClick={() => setIsExportModalOpen(true)}>
-              <Download className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Exportar</span> CSV
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-             <div className="flex items-center justify-center py-20">
-               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             </div>
-          ) : (
-            <div className="rounded-md border border-border/50 overflow-hidden">
-              <Table>
-                <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Proveedor</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Recibido por</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Ítems</TableHead>
-                    <TableHead className="text-right w-[140px]">Acciones</TableHead>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border/50 overflow-hidden bg-card shadow-sm">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              <TableRow>
+                <TableHead className="py-3">Fecha</TableHead>
+                <TableHead className="py-3">Proveedor</TableHead>
+                <TableHead className="py-3">Documento</TableHead>
+                <TableHead className="py-3">Recibido por</TableHead>
+                <TableHead className="text-right py-3">Total</TableHead>
+                <TableHead className="text-right py-3">Ítems</TableHead>
+                <TableHead className="text-right py-3 w-[140px]">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredReceptions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                    No se encontraron registros de recepción.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredReceptions.map((reception) => (
+                  <TableRow key={reception.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="text-sm py-3">
+                      <div className="font-medium text-foreground/90">{format(new Date(reception.created_at), "d MMM yyyy", { locale: es })}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(new Date(reception.created_at), "HH:mm", { locale: es })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="font-semibold text-sm">{reception.supplier_name || reception.supplier}</div>
+                      {reception.supplier_rut && (
+                        <div className="text-xs text-muted-foreground font-mono mt-0.5">{reception.supplier_rut}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px] uppercase font-semibold px-1.5 bg-muted/50 text-muted-foreground border-transparent">
+                            {docTypeLabel(reception.document_type)}
+                          </Badge>
+                          {reception.invoice ? (
+                            <span className="font-mono text-sm font-medium">{reception.invoice}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">Sin doc.</span>
+                          )}
+                        </div>
+                        {reception.invoice_date && (
+                          <div className="text-[10px] text-muted-foreground/60" title="Fecha de Documento">
+                            {format(new Date(reception.invoice_date + 'T12:00:00'), "d MMM yyyy", { locale: es })}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground py-3">
+                      {reception.receiver?.full_name}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-foreground py-3">
+                      ${(reception.total_amount || 0).toLocaleString('es-CL')}
+                    </TableCell>
+                    <TableCell className="text-right py-3">
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-sm">{reception.items?.length || 0} prod.</span>
+                        <span className="text-[10px] text-muted-foreground/80 uppercase mt-0.5">
+                          {reception.items?.reduce((acc: number, item: any) => acc + item.quantity, 0)} unid.
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right py-3">
+                      <div className="flex justify-end gap-1 opacity-60 hover:opacity-100 transition-opacity">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => setViewingReception(reception)} title="Ver Detalle">
+                           <Eye className="w-4 h-4" />
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => openEditModal(reception)} title="Editar Cabecera">
+                           <FileEdit className="w-4 h-4" />
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={() => handleDelete(reception)} title="Eliminar Recepción y Revertir Stock">
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReceptions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No se encontraron registros de recepción.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredReceptions.map((reception) => (
-                      <TableRow key={reception.id}>
-                        <TableCell className="text-sm">
-                          <div>{format(new Date(reception.created_at), "d MMM yyyy", { locale: es })}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(reception.created_at), "HH:mm", { locale: es })}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{reception.supplier_name || reception.supplier}</div>
-                          {reception.supplier_rut && (
-                            <div className="text-xs text-muted-foreground font-mono">{reception.supplier_rut}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[10px] uppercase">
-                              {docTypeLabel(reception.document_type)}
-                            </Badge>
-                            {reception.invoice ? (
-                              <span className="font-mono text-sm">{reception.invoice}</span>
-                            ) : (
-                              <span className="text-muted-foreground italic text-xs">Sin doc.</span>
-                            )}
-                          </div>
-                          {reception.invoice_date && (
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {format(new Date(reception.invoice_date + 'T12:00:00'), "d MMM yyyy", { locale: es })}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {reception.receiver?.full_name}
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-primary">
-                          ${(reception.total_amount || 0).toLocaleString('es-CL')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="font-bold">{reception.items?.length || 0} prod.</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {reception.items?.reduce((acc: number, item: any) => acc + item.quantity, 0)} unid.
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => setViewingReception(reception)} title="Ver Detalle">
-                               <Eye className="w-4 h-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500" onClick={() => openEditModal(reception)} title="Editar Cabecera">
-                               <FileEdit className="w-4 h-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(reception)} title="Eliminar Recepción y Revertir Stock">
-                               <Trash2 className="w-4 h-4" />
-                             </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* View Details Modal */}
       <Dialog open={!!viewingReception} onOpenChange={(open) => !open && setViewingReception(null)}>
