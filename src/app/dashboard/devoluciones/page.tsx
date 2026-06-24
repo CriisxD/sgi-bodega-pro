@@ -885,6 +885,12 @@ export default function DevolucionesPage() {
                   <span className="text-muted-foreground">Trabajador:</span>
                   <span className="font-medium">{selectedAssignment.worker?.name}</span>
                 </div>
+                {selectedAssignment.worker?.area && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Área:</span>
+                    <span className="font-medium">{selectedAssignment.worker.area}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Fecha préstamo:</span>
                   <span className="font-medium">
