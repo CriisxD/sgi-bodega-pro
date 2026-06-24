@@ -1,36 +1,21 @@
 export function HormibalLogo({ className = '', withText = true }: { className?: string, withText?: boolean }) {
   return (
-    <svg viewBox="0 0 200 220" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Back cube faces */}
-      <path d="M100 20 L160 55 L160 125 L100 160 L40 125 L40 55 Z" fill="#2B2B2B" opacity="0.1"/>
+    <svg viewBox="0 0 200 230" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Left half - Yellow */}
+      <path d="M40 60 L70 43 L70 83 L100 66 L100 106 L70 123 L70 163 L40 180 Z" fill="#D4D916"/>
       
-      {/* Left face - Yellow */}
-      <path d="M40 55 L100 90 L100 160 L40 125 Z" fill="#D4D916"/>
+      {/* Right half - Cyan */}
+      <path d="M160 60 L160 180 L130 163 L130 123 L100 106 L100 66 L130 83 L130 43 Z" fill="#00B4D8"/>
       
-      {/* Right face - Cyan */}
-      <path d="M160 55 L100 90 L100 160 L160 125 Z" fill="#00B4D8"/>
-      
-      {/* Top face - Light */}
-      <path d="M40 55 L100 20 L160 55 L100 90 Z" fill="#E8E850"/>
-      
-      {/* Inner H cutout - Left vertical */}
-      <path d="M60 68 L80 80 L80 110 L60 98 Z" fill="#1a1a2e"/>
-      {/* Inner H cutout - Right vertical */}
-      <path d="M120 80 L140 68 L140 98 L120 110 Z" fill="#1a1a2e"/>
-      {/* Inner H cutout - Crossbar */}
-      <path d="M80 88 L120 88 L120 98 L80 98 Z" fill="#1a1a2e"/>
-      
-      {/* Top small yellow block */}
-      <path d="M60 35 L80 23 L100 35 L80 47 Z" fill="#D4D916"/>
-      {/* Top small cyan block */}
-      <path d="M100 35 L120 23 L140 35 L120 47 Z" fill="#00B4D8"/>
-      
+      {/* Floating Top Diamond - Yellow */}
+      <path d="M100 9 L130 26 L100 43 L70 26 Z" fill="#D4D916"/>
+
       {withText && (
         <>
-          <text x="100" y="190" textAnchor="middle" fontFamily="var(--font-sans)" fontWeight="800" fontSize="26" letterSpacing="3" fill="#808080">
+          <text x="100" y="205" textAnchor="middle" fontFamily="var(--font-sans)" fontWeight="800" fontSize="24" letterSpacing="3" fill="#808080">
             HORMIBAL
           </text>
-          <text x="100" y="210" textAnchor="middle" fontFamily="var(--font-sans)" fontWeight="400" fontSize="10" letterSpacing="2" fill="#666666">
+          <text x="100" y="222" textAnchor="middle" fontFamily="var(--font-sans)" fontWeight="400" fontSize="9" letterSpacing="2" fill="#666666">
             PREFABRICADOS DE HORMIGÓN
           </text>
         </>
