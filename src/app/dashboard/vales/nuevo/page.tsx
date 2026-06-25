@@ -74,6 +74,10 @@ export default function NuevoValePage() {
   const [newWorkerData, setNewWorkerData] = useState({ name: '', rut: '', area: '', is_external: false, company: '' });
   const [creatingWorker, setCreatingWorker] = useState(false);
 
+  // Add to cart modal
+  const [cartModalProduct, setCartModalProduct] = useState<Product | null>(null);
+  const [cartModalQty, setCartModalQty] = useState<number | ''>(1);
+
   const scrollToTop = () => {
     setTimeout(() => {
       cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -170,13 +174,20 @@ export default function NuevoValePage() {
     }
   };
 
-  const addToCart = (product: Product) => {
-    const exists = cart.find((c) => c.product.id === product.id);
+  const handleAddToCartConfirm = () => {
+    if (!cartModalProduct) return;
+    const qty = typeof cartModalQty === 'string' ? parseInt(cartModalQty) || 1 : cartModalQty;
+    if (qty <= 0) return;
+    
+    const exists = cart.find((c) => c.product.id === cartModalProduct.id);
     if (exists) {
-      setCart(cart.map((c) => c.product.id === product.id ? { ...c, quantity: Math.min((c.quantity as number) + 1, product.stock) } : c));
+      setCart(cart.map((c) => c.product.id === cartModalProduct.id ? { ...c, quantity: Math.min((c.quantity as number) + qty, cartModalProduct.stock) } : c));
     } else {
-      setCart([...cart, { product, quantity: 1 }]);
+      setCart([...cart, { product: cartModalProduct, quantity: Math.min(qty, cartModalProduct.stock) }]);
     }
+    setCartModalProduct(null);
+    setCartModalQty(1);
+    setProductSearch('');
   };
 
   const updateQuantity = (productId: string, val: number | '') => {
@@ -389,6 +400,27 @@ export default function NuevoValePage() {
               <p className="text-center text-sm text-muted-foreground">Puedes seleccionar varios para un vale grupal</p>
             </CardHeader>
             <CardContent className="space-y-4 py-4 border-t border-border/10 flex-1 flex flex-col min-h-0">
+              {/* Chips de Trabajadores Seleccionados */}
+              {selectedWorkers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2 shrink-0">
+                  {selectedWorkers.map(id => {
+                    const w = workers.find(work => work.id === id);
+                    if (!w) return null;
+                    return (
+                      <div key={id} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-full border border-primary/20 text-sm font-medium">
+                        {w.name.split(' ')[0]} {w.name.split(' ').length > 1 ? w.name.split(' ')[1][0] + '.' : ''}
+                        <button 
+                          onClick={() => setSelectedWorkers(selectedWorkers.filter(wId => wId !== id))}
+                          className="ml-1 hover:text-destructive transition-colors focus:outline-none"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="flex gap-2 shrink-0">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
@@ -411,38 +443,46 @@ export default function NuevoValePage() {
                   <span className="hidden sm:inline font-medium">Nuevo</span>
                 </Button>
               </div>
+
               <div className="grid gap-3 flex-1 overflow-y-auto pr-1 pb-2">
-                {filteredWorkers.map((worker) => (
-                  <button
-                    key={worker.id}
-                    onClick={() => {
-                      if (selectedWorkers.includes(worker.id)) {
-                        setSelectedWorkers(selectedWorkers.filter(id => id !== worker.id));
-                      } else {
-                        setSelectedWorkers([...selectedWorkers, worker.id]);
-                      }
-                    }}
-                    className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
-                      selectedWorkers.includes(worker.id)
-                        ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
-                        : 'border-border/50 hover:border-primary/50 bg-card/50'
-                    }`}
-                  >
-                    <div>
-                      <p className="font-bold text-foreground">
-                        {worker.name}
-                        {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0 bg-amber-500/20 text-amber-600 border-amber-500/30">Externo</Badge>}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        <span className="font-mono">{worker.rut}</span> • {worker.is_external ? worker.company : worker.area} • {worker.position}
-                      </p>
-                    </div>
-                    {selectedWorkers.includes(worker.id) && (
-                      <CheckCircle className="w-6 h-6 text-primary" />
-                    )}
-                  </button>
-                ))}
-                {filteredWorkers.length === 0 && (
+                {workerSearch.trim() === '' ? (
+                  <div className="text-center py-10 flex flex-col items-center justify-center h-full opacity-50">
+                    <Search className="w-12 h-12 mb-3 text-muted-foreground" />
+                    <p className="text-muted-foreground font-medium">Escribe el nombre o RUT para buscar</p>
+                  </div>
+                ) : filteredWorkers.length > 0 ? (
+                  filteredWorkers.map((worker) => (
+                    <button
+                      key={worker.id}
+                      onClick={() => {
+                        if (selectedWorkers.includes(worker.id)) {
+                          setSelectedWorkers(selectedWorkers.filter(id => id !== worker.id));
+                        } else {
+                          setSelectedWorkers([...selectedWorkers, worker.id]);
+                          setWorkerSearch(''); // Limpiar búsqueda al seleccionar
+                        }
+                      }}
+                      className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
+                        selectedWorkers.includes(worker.id)
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                          : 'border-border/50 hover:border-primary/50 bg-card/50'
+                      }`}
+                    >
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {worker.name}
+                          {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0 bg-amber-500/20 text-amber-600 border-amber-500/30">Externo</Badge>}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          <span className="font-mono">{worker.rut}</span> • {worker.is_external ? worker.company : worker.area} • {worker.position}
+                        </p>
+                      </div>
+                      {selectedWorkers.includes(worker.id) && (
+                        <CheckCircle className="w-6 h-6 text-primary" />
+                      )}
+                    </button>
+                  ))
+                ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     No se encontraron trabajadores
                   </div>
@@ -472,6 +512,7 @@ export default function NuevoValePage() {
               <CardTitle className="text-xl text-center">Agrega los ítems al vale</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 py-4 border-t border-border/10 flex-1 flex flex-col min-h-0">
+              
               {/* Buscador */}
               <div className="relative mb-2 shrink-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
@@ -481,95 +522,91 @@ export default function NuevoValePage() {
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   onBlur={scrollToTop}
+                  autoFocus
                 />
               </div>
 
-              {/* Lista de Productos */}
-              <div className="grid gap-3 flex-1 overflow-y-auto pr-1 pb-2">
-                {filteredProducts.map((product) => {
-                  const inCart = cart.find((c) => c.product.id === product.id);
-                  return (
-                    <div
-                      key={product.id}
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border transition-all ${
-                        inCart ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-card/50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                          <Package className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm leading-tight">{product.name}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Stock: {product.stock} {product.unit} {product.category && ` • ${product.category.name}`}
-                          </p>
-                        </div>
-                      </div>
+              {/* Lista de Productos o Resumen del Carrito */}
+              <div className="flex-1 overflow-y-auto pr-1 pb-2 flex flex-col gap-3">
+                {productSearch.trim() !== '' ? (
+                  // MOSTRAR RESULTADOS DE BÚSQUEDA
+                  filteredProducts.length > 0 ? (
+                    filteredProducts.map((product) => {
+                      const inCart = cart.find((c) => c.product.id === product.id);
+                      return (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            if (product.stock > 0) {
+                              setCartModalProduct(product);
+                              setCartModalQty(1);
+                            }
+                          }}
+                          disabled={product.stock <= 0}
+                          className={`flex items-center justify-between gap-3 p-3 rounded-xl border text-left transition-all ${
+                            inCart ? 'border-primary/50 bg-primary/5' : 'border-border/50 hover:border-primary/50 bg-card/50'
+                          } ${product.stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                              <Package className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm leading-tight text-foreground">{product.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Stock: {product.stock} {product.unit} {product.category && ` • ${product.category.name}`}
+                              </p>
+                            </div>
+                          </div>
 
-                      {inCart ? (
-                        <div className="flex items-center gap-1.5 sm:ml-auto bg-background p-1 rounded-lg border shadow-sm">
-                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md hover:bg-destructive/10 hover:text-destructive" onClick={() => removeFromCart(product.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                          <div className="w-px h-5 bg-border mx-1"></div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(product.id, ((inCart.quantity as number) || 0) - 1)}>
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={product.stock}
-                            className="w-14 h-8 text-center px-1 py-0 font-bold border-none shadow-none focus-visible:ring-0 bg-transparent text-base"
-                            value={inCart.quantity}
-                            onChange={(e) => updateQuantity(product.id, e.target.value === '' ? '' : parseInt(e.target.value))}
-                            onBlur={(e) => {
-                                // Si queda vacío al salir, lo eliminamos o lo ponemos en 0
-                                if (e.target.value === '' || e.target.value === '0') {
-                                    removeFromCart(product.id);
-                                }
-                            }}
-                          />
-                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(product.id, ((inCart.quantity as number) || 0) + 1)} disabled={(inCart.quantity as number) >= product.stock}>
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          {product.stock <= 0 && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="w-full sm:w-auto h-10 shadow-sm border-primary/50 text-primary hover:bg-primary/10"
-                              onClick={() => {
-                                setQuickAdjustProduct(product);
-                                setQuickAdjustQty(1);
-                              }}
-                            >
-                              <Plus className="w-4 h-4 mr-1" /> Stock
-                            </Button>
+                          {inCart ? (
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-sm shrink-0">
+                              {inCart.quantity}
+                            </div>
+                          ) : (
+                            <Plus className="w-5 h-5 text-muted-foreground shrink-0" />
                           )}
-                          <Button size="sm" variant="secondary" onClick={() => addToCart(product)} disabled={product.stock <= 0} className="w-full sm:w-auto h-10 font-semibold shadow-sm">
-                            <Plus className="w-4 h-4 mr-2" /> Agregar
-                          </Button>
-                        </div>
-                      )}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No se encontraron productos
                     </div>
-                  );
-                })}
+                  )
+                ) : (
+                  // MOSTRAR CARRITO Y ESTADO VACÍO
+                  cart.length > 0 ? (
+                    <>
+                      <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1 mt-2">Ítems Seleccionados</h4>
+                      {cart.map((c) => (
+                        <div key={c.product.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm leading-tight">{c.product.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {c.quantity} {c.product.unit} seleccionados
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 bg-background rounded-lg border p-1 shadow-sm shrink-0">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md hover:bg-destructive/10 hover:text-destructive" onClick={() => updateQuantity(c.product.id, ((c.quantity as number) || 0) - 1)}>
+                              {c.quantity === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                            </Button>
+                            <span className="w-8 text-center font-bold">{c.quantity}</span>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(c.product.id, ((c.quantity as number) || 0) + 1)} disabled={(c.quantity as number) >= c.product.stock}>
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-center py-10 flex flex-col items-center justify-center h-full opacity-50">
+                      <Package className="w-12 h-12 mb-3 text-muted-foreground" />
+                      <p className="text-muted-foreground font-medium">Busca un producto para agregarlo al vale</p>
+                    </div>
+                  )
+                )}
               </div>
-
-              {/* Resumen del carrito flotante */}
-              {cart.length > 0 && (
-                <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg flex items-center justify-between shrink-0">
-                  <span className="font-medium text-sm text-primary">
-                    {cart.length} {cart.length === 1 ? 'producto seleccionado' : 'productos seleccionados'}
-                  </span>
-                  <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                    {cart.reduce((acc, curr) => acc + ((curr.quantity as number) || 0), 0)} unidades
-                  </span>
-                </div>
-              )}
             </CardContent>
             <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
               <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
@@ -590,55 +627,70 @@ export default function NuevoValePage() {
                 <CheckCircle className="w-6 h-6 text-success" /> Resumen del Vale
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 pt-4 flex-1 overflow-y-auto border-t border-border/10 mt-2">
+            <CardContent className="space-y-6 pt-4 flex-1 overflow-y-auto border-t border-border/10 mt-2 bg-muted/10">
               
-              {/* Info Worker */}
-              <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Para el trabajador</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-sm">
-                      {selectedWorkers.length} {selectedWorkers.length === 1 ? 'persona seleccionada' : 'personas seleccionadas'}
-                    </span>
-                  </div>
-                  <Badge variant="outline">{valeType === 'epp' ? 'EPP' : 'Material'}</Badge>
-                </div>
-              </div>
-
-              {/* Items Summary */}
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Ítems Solicitados</p>
-                <div className="space-y-2 border rounded-xl overflow-hidden bg-gray-50 dark:bg-card/50">
-                  {cart.map((item) => (
-                    <div key={item.product.id} className="flex justify-between items-center p-3 border-b last:border-0 bg-background/50">
-                      <span className="text-sm font-medium">{item.product.name}</span>
-                      <span className="font-bold bg-muted px-2 py-1 rounded text-sm">x{item.quantity} {item.product.unit}</span>
+              <div className="bg-background border border-border/50 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                {/* Estilo Ticket */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/50 via-primary to-primary/50"></div>
+                <div className="absolute -left-3 top-1/2 w-6 h-6 bg-muted/10 rounded-full border border-border/50"></div>
+                <div className="absolute -right-3 top-1/2 w-6 h-6 bg-muted/10 rounded-full border border-border/50"></div>
+                
+                {/* Info Worker */}
+                <div className="mb-6">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">Entregar a</p>
+                  <div className="flex justify-between items-center bg-muted/30 p-3 rounded-xl">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-base text-primary">
+                        {selectedWorkers.length} {selectedWorkers.length === 1 ? 'persona seleccionada' : 'personas seleccionadas'}
+                      </span>
                     </div>
-                  ))}
+                    <Badge variant="default" className="bg-primary/20 text-primary border-primary/30">{valeType === 'epp' ? 'EPP' : 'Material'}</Badge>
+                  </div>
                 </div>
-              </div>
 
-              {/* Notes */}
-              <div>
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2 block">Observaciones (Opcional)</Label>
-                <Textarea
-                  placeholder="Instrucciones especiales, centro de costo, motivos..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="resize-none h-20"
-                />
+                {/* Items Summary */}
+                <div className="mb-6 relative">
+                  <div className="absolute -left-5 w-[calc(100%+2.5rem)] border-t-2 border-dashed border-border/50 my-4"></div>
+                  <div className="pt-8">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-3">Ítems Solicitados</p>
+                    <div className="space-y-3">
+                      {cart.map((item) => (
+                        <div key={item.product.id} className="flex justify-between items-start gap-4">
+                          <span className="text-sm font-semibold text-foreground/90 leading-tight flex-1">{item.product.name}</span>
+                          <span className="font-bold text-lg text-primary whitespace-nowrap">x{item.quantity} <span className="text-sm text-muted-foreground font-medium">{item.product.unit}</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2 block">Observaciones (Opcional)</Label>
+                  <Textarea
+                    placeholder="Instrucciones especiales, centro de costo, motivos..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="resize-none h-20 bg-background/50 border-border/50 focus-visible:ring-primary/30 rounded-xl"
+                  />
+                </div>
               </div>
 
             </CardContent>
             <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
-              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
+              <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-14 sm:h-12 text-base font-medium">
                 <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
               </Button>
-              <Button onClick={handleSubmit} disabled={submitting} size="lg" className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-primary/25">
+              <Button 
+                onClick={handleSubmit} 
+                disabled={submitting} 
+                size="lg" 
+                className="w-full sm:w-auto h-14 sm:h-12 font-bold text-lg shadow-lg shadow-emerald-500/25 bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+              >
                 {submitting ? (
-                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Creando...</>
+                  <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> Procesando...</>
                 ) : (
-                  <><FilePlus className="w-6 h-6 mr-2" /> Crear y Enviar a Bodega</>
+                  <><CheckCircle className="w-6 h-6 mr-2" /> Procesar Vale</>
                 )}
               </Button>
             </CardFooter>
@@ -737,6 +789,94 @@ export default function NuevoValePage() {
             <Button onClick={handleCreateWorker} disabled={creatingWorker}>
               {creatingWorker ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Cart Modal */}
+      <Dialog open={!!cartModalProduct} onOpenChange={(open) => !open && setCartModalProduct(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Añadir al Vale</DialogTitle>
+          </DialogHeader>
+          {cartModalProduct && (
+            <div className="space-y-6 py-4">
+              <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-xl border">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Package className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-bold text-lg leading-tight">{cartModalProduct.name}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Stock disponible: {cartModalProduct.stock} {cartModalProduct.unit}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-base">Cantidad a entregar</Label>
+                <div className="flex items-center justify-center gap-4">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="icon"
+                    className="h-16 w-16 rounded-2xl"
+                    onClick={() => setCartModalQty(Math.max(1, (typeof cartModalQty === 'string' ? 1 : cartModalQty) - 1))}
+                  >
+                    <Minus className="w-6 h-6" />
+                  </Button>
+                  <Input 
+                    type="number"
+                    min={1}
+                    max={cartModalProduct.stock}
+                    className="h-16 w-32 text-center text-3xl font-bold rounded-2xl border-2 focus-visible:ring-primary/50"
+                    value={cartModalQty}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                      if (typeof val === 'number' && val > cartModalProduct.stock) {
+                        setCartModalQty(cartModalProduct.stock);
+                      } else {
+                        setCartModalQty(val);
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="icon"
+                    className="h-16 w-16 rounded-2xl"
+                    onClick={() => setCartModalQty(Math.min(cartModalProduct.stock, (typeof cartModalQty === 'string' ? 1 : cartModalQty) + 1))}
+                    disabled={(typeof cartModalQty === 'number' ? cartModalQty : 1) >= cartModalProduct.stock}
+                  >
+                    <Plus className="w-6 h-6" />
+                  </Button>
+                </div>
+
+                {/* Botones rápidos */}
+                <div className="flex gap-2 justify-center pt-2">
+                  {[1, 5, 10, 50].map((num) => (
+                    <Button
+                      key={num}
+                      type="button"
+                      variant="secondary"
+                      className="flex-1"
+                      disabled={num > cartModalProduct.stock}
+                      onClick={() => setCartModalQty(num)}
+                    >
+                      +{num}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+            <Button variant="ghost" className="w-full sm:w-auto h-12" onClick={() => setCartModalProduct(null)}>
+              Cancelar
+            </Button>
+            <Button className="w-full sm:w-auto h-12 text-base shadow-lg shadow-primary/25" onClick={handleAddToCartConfirm} disabled={!cartModalQty || cartModalQty <= 0}>
+              <CheckCircle className="w-5 h-5 mr-2" /> Añadir al Vale
             </Button>
           </DialogFooter>
         </DialogContent>
