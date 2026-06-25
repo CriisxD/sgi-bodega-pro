@@ -488,7 +488,7 @@ export default function DespachoPage() {
       )}
 
       <Dialog open={!!selectedVale} onOpenChange={() => setSelectedVale(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">
               Procesar Vale #{selectedVale?.vale_number}
