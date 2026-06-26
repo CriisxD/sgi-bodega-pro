@@ -129,16 +129,28 @@ export default function NuevoValePage() {
       filtered = filtered.filter((p) => p.category?.type?.toLowerCase() !== 'epp');
     }
     if (productSearch) {
-      const search = productSearch.toLowerCase();
-      filtered = filtered.filter((p) => p.name.toLowerCase().includes(search) || p.category?.name?.toLowerCase().includes(search));
+      const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const searchTerms = normalize(productSearch)
+        .replace(/s\b/g, '') // remove trailing 's' for simple singularization (discos -> disco)
+        .split(' ')
+        .filter(t => t.length > 0 && !['de', 'el', 'la', 'los', 'las', 'y', 'o', 'en'].includes(t));
+
+      filtered = filtered.filter((p) => {
+        const textToSearch = normalize(p.name) + ' ' + normalize(p.category?.name || '');
+        return searchTerms.every(term => textToSearch.includes(term));
+      });
     }
     return filtered;
   }, [products, valeType, productSearch]);
 
   const filteredWorkers = useMemo(() => {
     if (!workerSearch) return workers;
-    const search = workerSearch.toLowerCase();
-    return workers.filter((w) => w.name.toLowerCase().includes(search) || w.rut.toLowerCase().includes(search));
+    const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const searchTerms = normalize(workerSearch).split(' ').filter(t => t.length > 0);
+    return workers.filter((w) => {
+      const textToSearch = normalize(w.name) + ' ' + normalize(w.rut);
+      return searchTerms.every(term => textToSearch.includes(term));
+    });
   }, [workers, workerSearch]);
 
   const handleCreateWorker = async () => {
@@ -510,7 +522,9 @@ export default function NuevoValePage() {
         {step === 3 && (
           <>
             <CardHeader className="pb-2">
-              <CardTitle className="text-xl text-center">Agrega los ítems al vale</CardTitle>
+              <CardTitle className="text-xl text-center">
+                {profile?.role === 'prevencionista' ? 'Agrega el EPP al vale' : profile?.role === 'supervisor' ? 'Agrega los materiales al vale' : 'Agrega los ítems al vale'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 py-4 border-t border-border/10 flex-1 flex flex-col min-h-0">
               
