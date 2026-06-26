@@ -445,48 +445,49 @@ export default function NuevoValePage() {
               </div>
 
               <div className="grid gap-3 flex-1 overflow-y-auto pr-1 pb-2">
-                {workerSearch.trim() === '' ? (
-                  <div className="text-center py-10 flex flex-col items-center justify-center h-full opacity-50">
-                    <Search className="w-12 h-12 mb-3 text-muted-foreground" />
-                    <p className="text-muted-foreground font-medium">Escribe el nombre o RUT para buscar</p>
-                  </div>
-                ) : filteredWorkers.length > 0 ? (
-                  filteredWorkers.map((worker) => (
-                    <button
-                      key={worker.id}
-                      onClick={() => {
-                        if (selectedWorkers.includes(worker.id)) {
-                          setSelectedWorkers(selectedWorkers.filter(id => id !== worker.id));
-                        } else {
-                          setSelectedWorkers([...selectedWorkers, worker.id]);
-                          setWorkerSearch(''); // Limpiar búsqueda al seleccionar
-                        }
-                      }}
-                      className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
-                        selectedWorkers.includes(worker.id)
-                          ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
-                          : 'border-border/50 hover:border-primary/50 bg-card/50'
-                      }`}
-                    >
-                      <div>
-                        <p className="font-bold text-foreground">
-                          {worker.name}
-                          {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0 bg-amber-500/20 text-amber-600 border-amber-500/30">Externo</Badge>}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          <span className="font-mono">{worker.rut}</span> • {worker.is_external ? worker.company : worker.area} • {worker.position}
-                        </p>
-                      </div>
-                      {selectedWorkers.includes(worker.id) && (
-                        <CheckCircle className="w-6 h-6 text-primary" />
-                      )}
-                    </button>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No se encontraron trabajadores
-                  </div>
+                {workerSearch.trim() === '' && (
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1 mt-1">Sugerencias (Busca para ver más)</p>
                 )}
+                {(() => {
+                  const list = workerSearch.trim() === '' ? workers.slice(0, 3) : filteredWorkers;
+                  return list.length > 0 ? (
+                    list.map((worker) => (
+                      <button
+                        key={worker.id}
+                        onClick={() => {
+                          if (selectedWorkers.includes(worker.id)) {
+                            setSelectedWorkers(selectedWorkers.filter(id => id !== worker.id));
+                          } else {
+                            setSelectedWorkers([...selectedWorkers, worker.id]);
+                            setWorkerSearch(''); // Limpiar búsqueda al seleccionar
+                          }
+                        }}
+                        className={`flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
+                          selectedWorkers.includes(worker.id)
+                            ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                            : 'border-border/50 hover:border-primary/50 bg-card/50'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-bold text-foreground">
+                            {worker.name}
+                            {worker.is_external && <Badge variant="secondary" className="ml-2 text-[10px] py-0 bg-amber-500/20 text-amber-600 border-amber-500/30">Externo</Badge>}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span className="font-mono">{worker.rut}</span> • {worker.is_external ? worker.company : worker.area} • {worker.position}
+                          </p>
+                        </div>
+                        {selectedWorkers.includes(worker.id) && (
+                          <CheckCircle className="w-6 h-6 text-primary" />
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No se encontraron trabajadores
+                    </div>
+                  );
+                })()}
               </div>
             </CardContent>
             <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
@@ -528,83 +529,84 @@ export default function NuevoValePage() {
 
               {/* Lista de Productos o Resumen del Carrito */}
               <div className="flex-1 overflow-y-auto pr-1 pb-2 flex flex-col gap-3">
-                {productSearch.trim() !== '' ? (
-                  // MOSTRAR RESULTADOS DE BÚSQUEDA
-                  filteredProducts.length > 0 ? (
-                    filteredProducts.map((product) => {
-                      const inCart = cart.find((c) => c.product.id === product.id);
-                      return (
-                        <button
-                          key={product.id}
-                          onClick={() => {
-                            if (product.stock > 0) {
-                              setCartModalProduct(product);
-                              setCartModalQty(1);
-                            }
-                          }}
-                          disabled={product.stock <= 0}
-                          className={`flex items-center justify-between gap-3 p-3 rounded-xl border text-left transition-all ${
-                            inCart ? 'border-primary/50 bg-primary/5' : 'border-border/50 hover:border-primary/50 bg-card/50'
-                          } ${product.stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                              <Package className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-sm leading-tight text-foreground">{product.name}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Stock: {product.stock} {product.unit} {product.category && ` • ${product.category.name}`}
-                              </p>
-                            </div>
-                          </div>
-
-                          {inCart ? (
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-sm shrink-0">
-                              {inCart.quantity}
-                            </div>
-                          ) : (
-                            <Plus className="w-5 h-5 text-muted-foreground shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No se encontraron productos
-                    </div>
-                  )
-                ) : (
-                  // MOSTRAR CARRITO Y ESTADO VACÍO
-                  cart.length > 0 ? (
-                    <>
-                      <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1 mt-2">Ítems Seleccionados</h4>
-                      {cart.map((c) => (
-                        <div key={c.product.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm leading-tight">{c.product.name}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {c.quantity} {c.product.unit} seleccionados
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1 bg-background rounded-lg border p-1 shadow-sm shrink-0">
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md hover:bg-destructive/10 hover:text-destructive" onClick={() => updateQuantity(c.product.id, ((c.quantity as number) || 0) - 1)}>
-                              {c.quantity === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
-                            </Button>
-                            <span className="w-8 text-center font-bold">{c.quantity}</span>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(c.product.id, ((c.quantity as number) || 0) + 1)} disabled={(c.quantity as number) >= c.product.stock}>
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                          </div>
+                {productSearch.trim() === '' && cart.length > 0 ? (
+                  // MOSTRAR CARRITO
+                  <>
+                    <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1 mt-2 px-1">Ítems Seleccionados</h4>
+                    {cart.map((c) => (
+                      <div key={c.product.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5">
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm leading-tight">{c.product.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {c.quantity} {c.product.unit} seleccionados
+                          </p>
                         </div>
-                      ))}
-                    </>
-                  ) : (
-                    <div className="text-center py-10 flex flex-col items-center justify-center h-full opacity-50">
-                      <Package className="w-12 h-12 mb-3 text-muted-foreground" />
-                      <p className="text-muted-foreground font-medium">Busca un producto para agregarlo al vale</p>
-                    </div>
-                  )
+                        <div className="flex items-center gap-1 bg-background rounded-lg border p-1 shadow-sm shrink-0">
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md hover:bg-destructive/10 hover:text-destructive" onClick={() => updateQuantity(c.product.id, ((c.quantity as number) || 0) - 1)}>
+                            {c.quantity === 1 ? <Trash2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                          </Button>
+                          <span className="w-8 text-center font-bold">{c.quantity}</span>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-md" onClick={() => updateQuantity(c.product.id, ((c.quantity as number) || 0) + 1)} disabled={(c.quantity as number) >= c.product.stock}>
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  // MOSTRAR RESULTADOS DE BÚSQUEDA O SUGERENCIAS
+                  <>
+                    {productSearch.trim() === '' && (
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1 mt-1">Sugerencias (Busca para ver más)</p>
+                    )}
+                    {(() => {
+                      const list = productSearch.trim() === '' ? products.filter(p => p.stock > 0).slice(0, 3) : filteredProducts;
+                      return list.length > 0 ? (
+                        list.map((product) => {
+                          const inCart = cart.find((c) => c.product.id === product.id);
+                          return (
+                            <button
+                              key={product.id}
+                              onClick={() => {
+                                if (product.stock > 0) {
+                                  setCartModalProduct(product);
+                                  setCartModalQty(1);
+                                }
+                              }}
+                              disabled={product.stock <= 0}
+                              className={`flex items-center justify-between gap-3 p-3 rounded-xl border text-left transition-all ${
+                                inCart ? 'border-primary/50 bg-primary/5' : 'border-border/50 hover:border-primary/50 bg-card/50'
+                              } ${product.stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                  <Package className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-sm leading-tight text-foreground">{product.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    Stock: {product.stock} {product.unit} {product.category && ` • ${product.category.name}`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {inCart ? (
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-sm shrink-0">
+                                  {inCart.quantity}
+                                </div>
+                              ) : (
+                                <Plus className="w-5 h-5 text-muted-foreground shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No se encontraron productos
+                        </div>
+                      );
+                    })()}
+                  </>
                 )}
               </div>
             </CardContent>
