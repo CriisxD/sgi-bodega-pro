@@ -234,7 +234,7 @@ export default function DashboardPage() {
       {/* ═══════════════════════════════════════════
           Acción Inmediata (Hero Section)
           ═══════════════════════════════════════════ */}
-      <div className="flex flex-col gap-4">
+      <div className="hidden sm:flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-muted-foreground uppercase tracking-wider hidden sm:block">
           ¿Qué hacer hoy?
         </h2>
