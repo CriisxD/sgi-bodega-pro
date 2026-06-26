@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/supabase/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
@@ -16,8 +16,11 @@ export default function DashboardLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const hideMobileNav = pathname === '/dashboard/vales/nuevo';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -70,7 +73,8 @@ export default function DashboardLayout({
       {/* Main content */}
       <main
         className={cn(
-          'transition-all duration-300 pb-20 md:pb-0',
+          'transition-all duration-300',
+          hideMobileNav ? 'pb-0' : 'pb-20 md:pb-0',
           sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'
         )}
       >
