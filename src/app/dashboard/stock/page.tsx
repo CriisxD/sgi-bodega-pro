@@ -21,6 +21,14 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
@@ -213,13 +221,30 @@ export default function StockPage() {
     }
   };
 
-  const handleExportCSV = () => {
-    if (filteredProducts.length === 0) {
-      toast.error('No hay productos en esta vista para exportar');
+  const handleExportCSV = (exportType: 'all' | 'current' | 'critical' | 'category', categoryName?: string) => {
+    let listToExport: Product[] = [];
+    let filename = 'Inventario_Stock';
+
+    if (exportType === 'current') {
+      listToExport = filteredProducts;
+      filename += '_Vista_Actual';
+    } else if (exportType === 'all') {
+      listToExport = products;
+      filename += '_Completo';
+    } else if (exportType === 'critical') {
+      listToExport = products.filter(p => p.stock <= p.min_stock && p.min_stock > 0);
+      filename += '_Criticos';
+    } else if (exportType === 'category' && categoryName) {
+      listToExport = products.filter(p => p.category?.type?.toLowerCase() === categoryName.toLowerCase());
+      filename += `_${categoryName}`;
+    }
+
+    if (listToExport.length === 0) {
+      toast.error('No hay productos para exportar con esta selección');
       return;
     }
 
-    const dataToExport = filteredProducts.map(p => ({
+    const formattedData = listToExport.map(p => ({
       Producto: p.name,
       Categoria: p.category?.name || 'Sin categoría',
       Tipo_Categoria: p.category?.type || '',
@@ -230,11 +255,11 @@ export default function StockPage() {
       Estado: p.stock <= p.min_stock && p.min_stock > 0 ? 'CRITICO' : 'OK'
     }));
 
-    const csvContent = Papa.unparse(dataToExport);
+    const csvContent = Papa.unparse(formattedData);
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Inventario_Stock_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -264,11 +289,47 @@ export default function StockPage() {
 
           {/* View Toggle and Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportCSV} className="hidden sm:flex">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
-            </Button>
             
+            {/* Desktop Export */}
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Button variant="outline" size="sm" className="hidden sm:flex" type="button">
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar CSV
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Selecciona qué exportar</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleExportCSV('current')}>
+                  Exportar vista actual
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('all')}>
+                  Exportar todo el inventario
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('critical')}>
+                  Exportar solo críticos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground pt-1">Por Categoría</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'aseo')}>
+                  Artículos de Aseo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'epp')}>
+                  EPP
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'herramienta')}>
+                  Herramientas
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'insumo')}>
+                  Insumos / Repuestos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'material')}>
+                  Materiales
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <div className="hidden sm:flex border rounded-lg overflow-hidden">
               <Button
                 variant={viewMode === 'cards' ? 'default' : 'ghost'}
@@ -288,10 +349,44 @@ export default function StockPage() {
               </Button>
             </div>
             
-            {/* Mobile Export Button */}
-            <Button variant="outline" size="icon" onClick={handleExportCSV} className="sm:hidden h-10 w-10 shrink-0">
-              <Download className="w-4 h-4 text-muted-foreground" />
-            </Button>
+            {/* Mobile Export */}
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Button variant="outline" size="icon" className="sm:hidden h-10 w-10 shrink-0" type="button">
+                  <Download className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Opciones de exportación</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleExportCSV('current')}>
+                  Exportar vista actual
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('all')}>
+                  Exportar todo el inventario
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('critical')}>
+                  Exportar solo críticos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground pt-1">Por Categoría</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'aseo')}>
+                  Artículos de Aseo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'epp')}>
+                  EPP
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'herramienta')}>
+                  Herramientas
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'insumo')}>
+                  Insumos / Repuestos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'material')}>
+                  Materiales
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
