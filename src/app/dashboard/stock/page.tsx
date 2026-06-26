@@ -81,7 +81,14 @@ export default function StockPage() {
         .eq('active', true)
         .order('name');
 
-      setProducts(prods as Product[] || []);
+      let fetchedProducts = (prods as Product[]) || [];
+      if (profile?.role === 'prevencionista') {
+        fetchedProducts = fetchedProducts.filter(p => p.category?.type?.toLowerCase() === 'epp');
+      } else if (profile?.role === 'supervisor') {
+        fetchedProducts = fetchedProducts.filter(p => ['material', 'insumo', 'herramienta'].includes(p.category?.type?.toLowerCase() || ''));
+      }
+
+      setProducts(fetchedProducts);
       setLoading(false);
     };
 
@@ -98,7 +105,15 @@ export default function StockPage() {
             .select(`*, category:categories(*)`)
             .eq('active', true)
             .order('name')
-            .then(({ data }) => setProducts(data as Product[] || []));
+            .then(({ data }) => {
+              let fetchedProducts = (data as Product[]) || [];
+              if (profile?.role === 'prevencionista') {
+                fetchedProducts = fetchedProducts.filter(p => p.category?.type?.toLowerCase() === 'epp');
+              } else if (profile?.role === 'supervisor') {
+                fetchedProducts = fetchedProducts.filter(p => ['material', 'insumo', 'herramienta'].includes(p.category?.type?.toLowerCase() || ''));
+              }
+              setProducts(fetchedProducts);
+            });
         }
       )
       .subscribe();
