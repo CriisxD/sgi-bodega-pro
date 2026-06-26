@@ -583,8 +583,13 @@ export default function NuevoValePage() {
                               key={product.id}
                               onClick={() => {
                                 if (product.stock > 0) {
-                                  setCartModalProduct(product);
-                                  setCartModalQty(1);
+                                  if (inCart) {
+                                    if ((inCart.quantity as number) < product.stock) {
+                                      updateQuantity(product.id, ((inCart.quantity as number) || 0) + 1);
+                                    }
+                                  } else {
+                                    setCart([...cart, { product, quantity: 1 }]);
+                                  }
                                 }
                               }}
                               disabled={product.stock <= 0}
