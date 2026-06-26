@@ -505,8 +505,13 @@ export default function NuevoValePage() {
             <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-4 pb-4 sm:px-6 sm:pb-6 bg-muted/5 shrink-0">
               <Button 
                 variant="ghost" 
-                onClick={() => setStep(1)} 
-                disabled={profile?.role === 'prevencionista' || profile?.role === 'supervisor'}
+                onClick={() => {
+                  if (profile?.role === 'prevencionista' || profile?.role === 'supervisor') {
+                    router.push('/dashboard');
+                  } else {
+                    setStep(1);
+                  }
+                }} 
                 className="w-full sm:w-auto h-12 sm:h-10 text-base"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
