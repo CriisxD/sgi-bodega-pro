@@ -302,78 +302,85 @@ export default function DigitarValeFisicoPage() {
           {/* ═══════════════════════════════════════════
               LEFT COLUMN: Workspace (Worker, Type, Add Products) 
               ═══════════════════════════════════════════ */}
-          <div className="lg:col-span-3 space-y-6">
-            <Card className="card-glow border-border/50">
-              <CardContent className="p-5 space-y-6">
+          <div className="lg:col-span-3 space-y-0">
+            <Card className="card-glow border-border/50 overflow-hidden">
+              <CardContent className="p-0">
                 
-                {/* Receptor y Tipo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">1</div>
-                      <Label className="text-base font-bold">Trabajador (Receptor) *</Label>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1 min-w-0">
-                        <Popover open={openWorker} onOpenChange={setOpenWorker}>
-                          {/* @ts-ignore Base UI render prop */}
-                          <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-11" />}>
-                              {workerId
-                                ? workers.find((w) => w.id === workerId)?.name
-                                : "Buscar trabajador..."}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0">
-                            <Command>
-                              <CommandInput placeholder="Buscar por nombre o RUT..." />
-                              <CommandList>
-                                <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
-                                <CommandGroup>
-                                  {workers.map((worker) => (
-                                    <CommandItem
-                                      key={worker.id}
-                                      value={`${worker.name} ${worker.rut}`}
-                                      onSelect={() => {
-                                        setWorkerId(worker.id);
-                                        setOpenWorker(false);
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          workerId === worker.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                      {worker.name} ({worker.rut})
-                                      {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="icon"
-                        className="shrink-0 h-11 w-11"
-                        onClick={() => setCreateWorkerOpen(true)}
-                        title="Crear nuevo trabajador rápido"
-                      >
-                        <UserPlus className="h-5 w-5" />
-                      </Button>
+                {/* PASO 1: Trabajador */}
+                <div className="p-6 border-b border-border/30">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-base shrink-0 shadow-md shadow-primary/30">1</div>
+                    <div>
+                      <Label className="text-base font-bold block">Seleccionar Trabajador</Label>
+                      <p className="text-xs text-muted-foreground">¿A quién se le entregó el vale?</p>
                     </div>
                   </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">2</div>
-                      <Label className="text-base font-bold">Tipo de Vale *</Label>
+                  <div className="flex gap-2 ml-12">
+                    <div className="flex-1 min-w-0">
+                      <Popover open={openWorker} onOpenChange={setOpenWorker}>
+                        {/* @ts-ignore Base UI render prop */}
+                        <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-12 text-base" />}>
+                            {workerId
+                              ? workers.find((w) => w.id === workerId)?.name
+                              : "Buscar por nombre o RUT..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[350px] p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar por nombre o RUT..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontró el trabajador.</CommandEmpty>
+                              <CommandGroup>
+                                {workers.map((worker) => (
+                                  <CommandItem
+                                    key={worker.id}
+                                    value={`${worker.name} ${worker.rut}`}
+                                    onSelect={() => {
+                                      setWorkerId(worker.id);
+                                      setOpenWorker(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        workerId === worker.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {worker.name} ({worker.rut})
+                                    {worker.is_external && <span className="ml-2 text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded border border-amber-500/30">Externo</span>}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      className="shrink-0 h-12 w-12"
+                      onClick={() => setCreateWorkerOpen(true)}
+                      title="Crear nuevo trabajador rápido"
+                    >
+                      <UserPlus className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* PASO 2: Tipo de Vale */}
+                <div className="p-6 border-b border-border/30">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-base shrink-0 shadow-md shadow-primary/30">2</div>
+                    <div>
+                      <Label className="text-base font-bold block">Tipo de Vale</Label>
+                      <p className="text-xs text-muted-foreground">¿Qué tipo de entrega fue?</p>
+                    </div>
+                  </div>
+                  <div className="ml-12">
                     <Select value={valeType} onValueChange={(val: any) => setValeType(val)} required>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger className="h-12 text-base">
                         <SelectValue placeholder="Seleccione tipo">
                           {valeType === 'uso_diario' && 'Uso Diario (Devolución hoy)'}
                           {valeType === 'cargo_personal' && 'Cargo Personal (Largo plazo)'}
@@ -391,72 +398,84 @@ export default function DigitarValeFisicoPage() {
                   </div>
                 </div>
 
-                {/* Notas */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Notas Adicionales (Opcional)</Label>
-                  <Input 
-                    placeholder="Ej. Vale entregado firmado por Supervisor X..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="h-11"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="card-glow border-border/50 bg-primary/5 border-primary/20">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">3</div>
-                  <Label className="text-base font-bold text-primary">Añadir Productos al Vale</Label>
-                </div>
-                
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Popover open={openSearch} onOpenChange={setOpenSearch}>
-                      {/* @ts-ignore Base UI render prop */}
-                      <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-12 text-base shadow-sm" />}>
-                          Buscar producto por nombre o código...
-                          <Plus className="ml-2 h-5 w-5 shrink-0 opacity-50" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Escribe para buscar..." autoFocus />
-                          <CommandList>
-                            <CommandEmpty>No se encontró el producto.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredProducts.map((product) => (
-                                <CommandItem
-                                  key={product.id}
-                                  value={product.name}
-                                  onSelect={() => handleSelectProduct(product.id)}
-                                  className="py-3"
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{product.name}</span>
-                                    <span className={cn("text-xs", product.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
-                                      Stock: {product.stock} {product.unit}
-                                    </span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                {/* PASO 3: Añadir Productos */}
+                <div className="p-6 border-b border-border/30 bg-primary/5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-base shrink-0 shadow-md shadow-primary/30">3</div>
+                    <div>
+                      <Label className="text-base font-bold text-primary block">Añadir Productos al Vale</Label>
+                      <p className="text-xs text-muted-foreground">Busca y agrega los ítems entregados</p>
+                    </div>
                   </div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    className="shrink-0 h-12 w-12"
-                    onClick={() => setCreateProductOpen(true)}
-                    title="Crear nuevo producto rápido"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
+                  <div className="flex gap-2 ml-12">
+                    <div className="flex-1">
+                      <Popover open={openSearch} onOpenChange={setOpenSearch}>
+                        {/* @ts-ignore Base UI render prop */}
+                        <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between h-12 text-base shadow-sm" />}>
+                            Buscar producto por nombre o código...
+                            <Plus className="ml-2 h-5 w-5 shrink-0 opacity-50" />
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Escribe para buscar..." autoFocus />
+                            <CommandList>
+                              <CommandEmpty>No se encontró el producto.</CommandEmpty>
+                              <CommandGroup>
+                                {filteredProducts.map((product) => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.name}
+                                    onSelect={() => handleSelectProduct(product.id)}
+                                    className="py-3"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{product.name}</span>
+                                      <span className={cn("text-xs", product.stock <= 0 ? "text-destructive" : "text-muted-foreground")}>
+                                        Stock: {product.stock} {product.unit}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      className="shrink-0 h-12 w-12"
+                      onClick={() => setCreateProductOpen(true)}
+                      title="Crear nuevo producto rápido"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
+
+                {/* NOTAS */}
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+                      <PenLine className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <Label className="text-base font-bold block">Notas (Opcional)</Label>
+                      <p className="text-xs text-muted-foreground">Observaciones o instrucciones adicionales</p>
+                    </div>
+                  </div>
+                  <div className="ml-12">
+                    <Input 
+                      placeholder="Ej. Vale entregado firmado por Supervisor X..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="h-12 text-base"
+                    />
+                  </div>
+                </div>
+
               </CardContent>
             </Card>
           </div>
