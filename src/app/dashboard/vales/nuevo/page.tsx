@@ -331,7 +331,7 @@ export default function NuevoValePage() {
   const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
 
   return (
-    <div className="max-w-xl mx-auto h-[calc(100vh-8rem)] flex flex-col">
+    <div className="max-w-xl mx-auto min-h-[calc(100dvh-8rem)] sm:h-[calc(100vh-8rem)] flex flex-col">
       {/* Progress Bar */}
       <div className="mb-6">
         <div className="flex justify-between text-xs font-medium text-muted-foreground mb-2 px-1">
@@ -381,7 +381,7 @@ export default function NuevoValePage() {
                 );
               })}
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-4 pb-4 sm:px-6 sm:pb-6 bg-muted/5 shrink-0">
               <Button variant="ghost" onClick={() => router.back()} className="w-full sm:w-auto h-12 sm:h-10 text-base">
                 Cancelar
               </Button>
@@ -423,10 +423,10 @@ export default function NuevoValePage() {
 
               <div className="flex gap-2 shrink-0">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por nombre o RUT..."
-                    className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
+                    className="pl-10 h-12 text-base rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
                     value={workerSearch}
                     onChange={(e) => setWorkerSearch(e.target.value)}
                     onBlur={scrollToTop}
@@ -436,10 +436,10 @@ export default function NuevoValePage() {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  className="h-14 px-4 rounded-xl flex items-center justify-center border-dashed border-2 hover:border-primary/50 hover:bg-primary/5 transition-colors whitespace-nowrap"
+                  className="h-12 px-3 sm:px-4 rounded-xl flex items-center justify-center border-dashed border-2 hover:border-primary/50 hover:bg-primary/5 transition-colors whitespace-nowrap"
                   onClick={() => setCreateWorkerOpen(true)}
                 >
-                  <Plus className="w-5 h-5 mr-2 text-primary" />
+                  <Plus className="w-5 h-5 sm:mr-2 text-primary" />
                   <span className="hidden sm:inline font-medium">Nuevo</span>
                 </Button>
               </div>
@@ -490,7 +490,7 @@ export default function NuevoValePage() {
                 })()}
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-4 pb-4 sm:px-6 sm:pb-6 bg-muted/5 shrink-0">
               <Button 
                 variant="ghost" 
                 onClick={() => setStep(1)} 
@@ -516,10 +516,10 @@ export default function NuevoValePage() {
               
               {/* Buscador */}
               <div className="relative mb-2 shrink-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   placeholder="Buscar producto en bodega..."
-                  className="pl-12 h-14 text-lg rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
+                  className="pl-10 h-12 text-base rounded-xl shadow-inner bg-background/50 focus-visible:ring-primary/50"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   onBlur={scrollToTop}
@@ -610,7 +610,7 @@ export default function NuevoValePage() {
                 )}
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-4 pb-4 sm:px-6 sm:pb-6 bg-muted/5 shrink-0">
               <Button variant="ghost" onClick={() => setStep(2)} className="w-full sm:w-auto h-12 sm:h-10 text-base">
                 <ArrowLeft className="w-5 h-5 mr-2" /> Atrás
               </Button>
@@ -679,7 +679,7 @@ export default function NuevoValePage() {
               </div>
 
             </CardContent>
-            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-6 pb-6 bg-muted/5 shrink-0">
+            <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-border/10 pt-4 px-4 pb-4 sm:px-6 sm:pb-6 bg-muted/5 shrink-0">
               <Button variant="ghost" onClick={() => setStep(3)} className="w-full sm:w-auto h-14 sm:h-12 text-base font-medium">
                 <ArrowLeft className="w-5 h-5 mr-2" /> Editar Ítems
               </Button>
