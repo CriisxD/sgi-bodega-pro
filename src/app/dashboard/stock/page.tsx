@@ -280,11 +280,52 @@ export default function StockPage() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-xl font-bold">Inventario de Stock</h2>
-            <p className="text-muted-foreground text-sm">
-              {products.length} productos registrados ({lowStockCount} con stock bajo)
-            </p>
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            <div>
+              <h2 className="text-xl font-bold">Inventario de Stock</h2>
+              <p className="text-muted-foreground text-sm">
+                {products.length} productos registrados ({lowStockCount} con stock bajo)
+              </p>
+            </div>
+            
+            {/* Mobile Export */}
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <Button variant="outline" size="icon" className="sm:hidden h-10 w-10 shrink-0" type="button">
+                  <Download className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Opciones de exportación</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleExportCSV('current')}>
+                  Exportar vista actual
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('all')}>
+                  Exportar todo el inventario
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('critical')}>
+                  Exportar solo críticos
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground pt-1">Por Categoría</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'aseo')}>
+                  Artículos de Aseo
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'epp')}>
+                  EPP
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'herramienta')}>
+                  Herramientas
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'insumo')}>
+                  Insumos / Repuestos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportCSV('category', 'material')}>
+                  Materiales
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* View Toggle and Actions */}
@@ -348,45 +389,6 @@ export default function StockPage() {
                 <List className="w-4 h-4" />
               </Button>
             </div>
-            
-            {/* Mobile Export */}
-            <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="outline" size="icon" className="sm:hidden h-10 w-10 shrink-0" type="button">
-                  <Download className="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Opciones de exportación</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleExportCSV('current')}>
-                  Exportar vista actual
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('all')}>
-                  Exportar todo el inventario
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('critical')}>
-                  Exportar solo críticos
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground pt-1">Por Categoría</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handleExportCSV('category', 'aseo')}>
-                  Artículos de Aseo
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('category', 'epp')}>
-                  EPP
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('category', 'herramienta')}>
-                  Herramientas
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('category', 'insumo')}>
-                  Insumos / Repuestos
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportCSV('category', 'material')}>
-                  Materiales
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
 
@@ -468,14 +470,14 @@ export default function StockPage() {
                   isLowStock ? "bg-destructive/5 border-destructive/20" : "bg-card border-border/50"
                 )}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4 flex flex-col flex-1">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex bg-muted/50 p-2 rounded w-10 h-10 items-center justify-center shrink-0">
-                      <Package className="w-5 h-5 text-muted-foreground" />
+                    <div className="flex bg-muted/50 p-1.5 rounded w-8 h-8 sm:w-10 sm:h-10 items-center justify-center shrink-0">
+                      <Package className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                     </div>
                     {isLowStock && (
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                        <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] px-1.5 py-0">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
                         Crítico
                       </Badge>
                     )}
