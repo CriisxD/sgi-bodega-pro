@@ -308,8 +308,11 @@ export default function DigitarValeFisicoPage() {
                 
                 {/* Receptor y Tipo */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">1. Trabajador (Receptor) *</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">1</div>
+                      <Label className="text-base font-bold">Trabajador (Receptor) *</Label>
+                    </div>
                     <div className="flex gap-2">
                       <div className="flex-1 min-w-0">
                         <Popover open={openWorker} onOpenChange={setOpenWorker}>
@@ -364,8 +367,11 @@ export default function DigitarValeFisicoPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">2. Tipo de Vale *</Label>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">2</div>
+                      <Label className="text-base font-bold">Tipo de Vale *</Label>
+                    </div>
                     <Select value={valeType} onValueChange={(val: any) => setValeType(val)} required>
                       <SelectTrigger className="h-11">
                         <SelectValue placeholder="Seleccione tipo">
@@ -400,8 +406,8 @@ export default function DigitarValeFisicoPage() {
 
             <Card className="card-glow border-border/50 bg-primary/5 border-primary/20">
               <CardContent className="p-5 space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">3</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">3</div>
                   <Label className="text-base font-bold text-primary">Añadir Productos al Vale</Label>
                 </div>
                 
