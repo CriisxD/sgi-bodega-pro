@@ -161,32 +161,32 @@ export function FullScreenSignatureModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#090D16] select-none touch-none">
+    <div className="fixed inset-0 z-[100] bg-background select-none touch-none">
       <div
         ref={containerRef}
         className={cn(
-          "flex flex-col bg-[#090D16] p-6 text-white overflow-hidden",
+          "flex flex-col bg-background p-6 text-foreground overflow-hidden",
           isRotated 
             ? "fixed top-0 left-0 w-[100vh] h-[100vw] transform rotate-90 origin-top-left ml-[100vw]" 
             : "w-full h-full"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-border pb-3 mb-4 shrink-0">
           <div className="flex items-center gap-2">
-            <PenTool className="w-5 h-5 text-amber-500" />
+            <PenTool className="w-5 h-5 text-primary" />
             <h3 className="font-bold text-base tracking-wide">{title}</h3>
           </div>
           <button 
             onClick={onClose} 
-            className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-full bg-muted hover:bg-accent transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Drawing Area */}
-        <div className="flex-1 flex flex-col relative min-h-0 bg-white rounded-2xl border border-slate-700/30 p-2 overflow-hidden shadow-inner">
+        <div className="flex-1 flex flex-col relative min-h-0 bg-white rounded-2xl border border-border p-2 overflow-hidden shadow-inner">
           <canvas
             ref={canvasRef}
             onMouseDown={startDrawing}
@@ -209,8 +209,8 @@ export function FullScreenSignatureModal({
         </div>
 
         {/* Action Controls - Always aligned at the bottom of the landscape view */}
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-800 shrink-0 gap-4">
-          <div className="text-xs text-slate-400 max-w-[50%]">
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border shrink-0 gap-4">
+          <div className="text-xs text-muted-foreground max-w-[50%]">
             Sostenga el dispositivo de costado si es necesario para firmar con comodidad.
           </div>
           <div className="flex gap-3 shrink-0">
@@ -219,7 +219,7 @@ export function FullScreenSignatureModal({
               variant="outline"
               onClick={clearCanvas}
               disabled={!hasDrawn}
-              className="border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+              
             >
               <RotateCcw className="w-4 h-4 mr-1.5" />
               Limpiar
@@ -228,7 +228,7 @@ export function FullScreenSignatureModal({
               type="button"
               onClick={handleConfirm}
               disabled={!hasDrawn}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-lg shadow-amber-500/10"
+              className="bg-brand-gradient text-white border-0 font-bold shadow-md shadow-primary/20 hover:opacity-95"
             >
               <Check className="w-4 h-4 mr-1.5" />
               Confirmar Firma

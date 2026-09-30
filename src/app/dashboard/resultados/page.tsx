@@ -102,7 +102,7 @@ export default function ResultadosPage() {
     <div className="space-y-8 animate-in fade-in duration-700">
       
       {/* Header Premium */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-primary/90 to-chart-2/90 text-primary-foreground p-8 sm:p-12 shadow-2xl">
+      <div className="relative rounded-2xl overflow-hidden bg-brand-gradient text-white p-8 sm:p-12 shadow-2xl">
         <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
           <Trophy className="w-64 h-64 -mt-12 -mr-12" />
         </div>
@@ -220,21 +220,21 @@ export default function ResultadosPage() {
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAhorro" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="oklch(0.60 0.20 260)" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="oklch(0.60 0.20 260)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#2F86D6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#2F86D6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.02 260)" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E7E3D4" vertical={false} />
                 <XAxis 
                   dataKey="fecha" 
-                  stroke="oklch(0.60 0.02 260)" 
+                  stroke="#6B7689" 
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
                   dy={10}
                 />
                 <YAxis 
-                  stroke="oklch(0.60 0.02 260)" 
+                  stroke="#6B7689" 
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
@@ -242,18 +242,18 @@ export default function ResultadosPage() {
                 />
                 <Tooltip
                   contentStyle={{ 
-                    backgroundColor: 'oklch(0.17 0.015 260)', 
-                    borderColor: 'oklch(0.28 0.02 260)',
+                    backgroundColor: '#FFFFFF', 
+                    borderColor: '#E7E3D4',
                     borderRadius: '8px',
                     color: 'white'
                   }}
-                  itemStyle={{ color: 'oklch(0.80 0.15 260)' }}
+                  itemStyle={{ color: '#1B2A4A' }}
                   formatter={(value: any) => [`${value} minutos`, 'Ahorro']}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="ahorro" 
-                  stroke="oklch(0.60 0.20 260)" 
+                  stroke="#2F86D6" 
                   strokeWidth={3}
                   fillOpacity={1} 
                   fill="url(#colorAhorro)" 

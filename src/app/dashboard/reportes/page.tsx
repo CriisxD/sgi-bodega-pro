@@ -446,34 +446,34 @@ export default function ReportesPage() {
             <div className="h-[300px] w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.02 260)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E7E3D4" vertical={false} />
                   <XAxis 
                     dataKey="name" 
-                    stroke="oklch(0.60 0.02 260)" 
+                    stroke="#6B7689" 
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis 
-                    stroke="oklch(0.60 0.02 260)" 
+                    stroke="#6B7689" 
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => `${value}`}
                   />
                   <Tooltip
-                    cursor={{ fill: 'oklch(0.20 0.015 260)' }}
+                    cursor={{ fill: '#F1EEE3' }}
                     contentStyle={{ 
-                      backgroundColor: 'oklch(0.17 0.015 260)', 
-                      borderColor: 'oklch(0.28 0.02 260)',
+                      backgroundColor: '#FFFFFF', 
+                      borderColor: '#E7E3D4',
                       borderRadius: '8px'
                     }}
-                    itemStyle={{ color: 'oklch(0.95 0.01 260)' }}
+                    itemStyle={{ color: '#1B2A4A' }}
                   />
                   <Bar 
                     dataKey="total" 
                     name="Cantidad Entregada"
-                    fill="oklch(0.67 0.14 240)" 
+                    fill="#2F86D6" 
                     radius={[4, 4, 0, 0]} 
                     maxBarSize={60}
                   />

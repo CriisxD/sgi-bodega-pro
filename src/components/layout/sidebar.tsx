@@ -132,7 +132,7 @@ const navItems: NavItem[] = [
   {
     title: 'Impacto MVP',
     href: '/dashboard/resultados',
-    icon: <Zap className="w-5 h-5 text-yellow-400" />,
+    icon: <Zap className="w-5 h-5 text-warning" />,
     roles: ['admin'],
   },
 ];

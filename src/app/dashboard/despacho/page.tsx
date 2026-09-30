@@ -668,8 +668,8 @@ export default function DespachoPage() {
                         <span className="text-[10px] font-normal text-muted-foreground">La pantalla se girará para firmar de costado</span>
                       </Button>
                     ) : (
-                      <div className="border border-border/80 rounded-xl bg-[#0E1524] overflow-hidden flex flex-col items-center justify-center p-5 relative">
-                        <div className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
+                      <div className="border border-border/80 rounded-xl bg-muted/50 overflow-hidden flex flex-col items-center justify-center p-5 relative">
+                        <div className="absolute top-2 right-2 bg-success text-success-foreground text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
                           <CheckCircle className="w-2.5 h-2.5" /> Firma Capturada
                         </div>
                         {/* We display signature image: since signature is black stroke on transparent canvas, we show it on a light background slot so it's clearly visible */}
@@ -681,7 +681,7 @@ export default function DespachoPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setIsFullScreenSignatureOpen(true)}
-                          className="mt-3 text-xs h-8 border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                          className="mt-3 text-xs h-8"
                         >
                           Volver a firmar
                         </Button>

@@ -261,8 +261,10 @@ export default function NuevoValePage() {
 
     setSubmitting(true);
     try {
-      const { data: lastVale } = await supabase.from('vales').select('vale_number').order('vale_number', { ascending: false }).limit(1).single();
-      let nextNumber = (lastVale?.vale_number || 2000);
+      // RPC en vez de max(vale_number) local: con RLS el supervisor solo ve los vales de su área
+      const { data: firstNumber, error: numberError } = await supabase.rpc('next_vale_number');
+      if (numberError) throw numberError;
+      let nextNumber = (firstNumber as number) - 1;
 
       for (const workerId of selectedWorkers) {
         nextNumber++;

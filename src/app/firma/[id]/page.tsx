@@ -58,7 +58,7 @@ export default function FirmaMobilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
@@ -66,13 +66,13 @@ export default function FirmaMobilePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 text-center">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6 text-center">
+        <div className="bg-card p-8 rounded-2xl shadow-sm border border-border">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl font-bold">!</span>
           </div>
           <h1 className="text-xl font-bold mb-2">Aviso</h1>
-          <p className="text-gray-600">{error}</p>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );
@@ -80,13 +80,13 @@ export default function FirmaMobilePage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6 text-center">
         <div className="space-y-6 max-w-sm w-full">
-          <div className="w-24 h-24 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-2 animate-bounce">
+          <div className="w-24 h-24 bg-success/15 text-success rounded-full flex items-center justify-center mx-auto mb-2 animate-bounce">
             <CheckCircle className="w-12 h-12" />
           </div>
           <h1 className="text-3xl font-bold">¡Firma Enviada!</h1>
-          <p className="text-gray-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             La firma se ha guardado correctamente.
             <br/><br/>
             Puede cerrar esta pantalla y mirar el computador del bodeguero.
@@ -97,24 +97,24 @@ export default function FirmaMobilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col p-4 sm:p-6">
+    <div className="min-h-screen bg-background text-foreground flex flex-col p-4 sm:p-6">
       <div className="mb-6 mt-4">
         <h1 className="text-2xl font-bold text-center flex items-center justify-center gap-2">
-          <PenTool className="w-6 h-6 text-yellow-500" /> Confirmar Recepción
+          <PenTool className="w-6 h-6 text-primary" /> Confirmar Recepción
         </h1>
-        <p className="text-center text-gray-400 mt-2 text-sm">Vale #{valeData?.vale_number}</p>
+        <p className="text-center text-muted-foreground mt-2 text-sm">Vale #{valeData?.vale_number}</p>
       </div>
 
-      <div className="bg-[#111] rounded-2xl p-5 border border-white/10 mb-6 flex-1 max-h-[30vh] overflow-y-auto">
-        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-3">Trabajador</p>
-        <p className="font-bold text-xl mb-4 text-white">{valeData?.worker?.name}</p>
+      <div className="brand-top-bar bg-card rounded-2xl p-5 border border-border shadow-sm mb-6 flex-1 max-h-[30vh] overflow-y-auto">
+        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-3">Trabajador</p>
+        <p className="font-bold text-xl mb-4 text-foreground">{valeData?.worker?.name}</p>
         
-        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-3">Ítems a recibir</p>
+        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-3">Ítems a recibir</p>
         <ul className="space-y-2">
           {valeData?.items?.map((item: any, idx: number) => (
-            <li key={idx} className="flex justify-between items-center text-sm border-b border-white/5 pb-2 last:border-0">
-              <span className="text-gray-300">{item.product?.name}</span>
-              <span className="font-bold bg-white/10 px-2 py-1 rounded text-white text-xs">x{item.quantity}</span>
+            <li key={idx} className="flex justify-between items-center text-sm border-b border-border pb-2 last:border-0">
+              <span className="text-foreground">{item.product?.name}</span>
+              <span className="font-bold bg-accent px-2 py-1 rounded text-accent-foreground text-xs">x{item.quantity}</span>
             </li>
           ))}
         </ul>
@@ -125,15 +125,15 @@ export default function FirmaMobilePage() {
           <Button
             type="button"
             onClick={() => setIsFullScreenSignatureOpen(true)}
-            className="w-full h-40 border-2 border-dashed border-white/20 hover:border-yellow-500/50 bg-white/5 hover:bg-yellow-500/5 text-gray-400 hover:text-yellow-500 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all font-semibold"
+            className="w-full h-40 border-2 border-dashed border-primary/30 hover:border-primary/60 bg-card hover:bg-accent text-muted-foreground hover:text-primary rounded-2xl flex flex-col items-center justify-center gap-3 transition-all font-semibold"
           >
-            <PenTool className="w-8 h-8 animate-pulse text-yellow-500" />
-            <span className="text-base text-white">Presione aquí para firmar</span>
-            <span className="text-xs font-normal text-gray-400">La pantalla se abrirá completa y de costado para firmar mejor</span>
+            <PenTool className="w-8 h-8 animate-pulse text-primary" />
+            <span className="text-base text-foreground">Presione aquí para firmar</span>
+            <span className="text-xs font-normal text-muted-foreground">La pantalla se abrirá completa y de costado para firmar mejor</span>
           </Button>
         ) : (
-          <div className="border border-white/10 rounded-2xl bg-white/5 overflow-hidden flex flex-col items-center justify-center p-6 relative">
-            <div className="absolute top-2 right-2 bg-green-500 text-black text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
+          <div className="border border-border rounded-2xl bg-card overflow-hidden flex flex-col items-center justify-center p-6 relative">
+            <div className="absolute top-2 right-2 bg-success text-success-foreground text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 select-none pointer-events-none">
               <CheckCircle className="w-3 h-3" /> Firma Capturada
             </div>
             {/* Display signature image: since it is dark ink on transparent canvas, we wrap it in a white block for clarity */}
@@ -146,7 +146,7 @@ export default function FirmaMobilePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFullScreenSignatureOpen(true)}
-                className="text-xs h-9 border-white/10 bg-white/5 text-gray-300 hover:bg-white/10"
+                className="text-xs h-9"
               >
                 Volver a firmar
               </Button>
@@ -155,7 +155,7 @@ export default function FirmaMobilePage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setSignatureData(null)}
-                className="text-xs h-9 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                className="text-xs h-9 text-destructive hover:bg-destructive/10"
               >
                 Limpiar
               </Button>
@@ -168,7 +168,7 @@ export default function FirmaMobilePage() {
         <Button 
           onClick={handleSubmit} 
           disabled={submitting || !signatureData} 
-          className="w-full h-16 text-lg font-bold bg-yellow-500 hover:bg-yellow-600 text-black rounded-2xl shadow-lg"
+          className="w-full h-16 text-lg font-bold bg-brand-gradient text-white border-0 rounded-2xl shadow-lg shadow-primary/20 hover:opacity-95"
         >
           {submitting ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : 'Enviar Firma Segura'}
         </Button>

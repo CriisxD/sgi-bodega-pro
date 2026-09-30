@@ -55,49 +55,53 @@
   --color-info-foreground: var(--info-foreground);
 }
 
-/* Dark theme only — industrial/warehouse aesthetic */
+/* Tema claro Hormibal — crema, azul marino, degradado azul→turquesa y acento lima */
 :root {
-  --background: oklch(0.12 0.01 260);
-  --foreground: oklch(0.95 0.01 260);
-  --card: oklch(0.17 0.015 260);
-  --card-foreground: oklch(0.95 0.01 260);
-  --popover: oklch(0.17 0.015 260);
-  --popover-foreground: oklch(0.95 0.01 260);
-  --primary: oklch(0.67 0.14 240); /* Cyan */
-  --primary-foreground: oklch(0.12 0.01 260);
-  --secondary: oklch(0.22 0.02 260);
-  --secondary-foreground: oklch(0.90 0.01 260);
-  --muted: oklch(0.20 0.015 260);
-  --muted-foreground: oklch(0.60 0.02 260);
-  --accent: oklch(0.25 0.03 260);
-  --accent-foreground: oklch(0.95 0.01 260);
-  --destructive: oklch(0.60 0.22 25);
-  --border: oklch(0.28 0.02 260);
-  --input: oklch(0.22 0.02 260);
-  --ring: oklch(0.67 0.14 240); /* Cyan */
+  --background: #F8F6EE; /* Crema */
+  --foreground: #1B2A4A; /* Azul marino */
+  --card: #FFFDF6;
+  --card-foreground: #1B2A4A;
+  --popover: #FFFFFF;
+  --popover-foreground: #1B2A4A;
+  --primary: #2F86D6; /* Azul */
+  --primary-foreground: #FFFFFF;
+  --secondary: #EEF3F8;
+  --secondary-foreground: #1B2A4A;
+  --muted: #F1EEE3;
+  --muted-foreground: #6B7689;
+  --accent: #E6F0FA;
+  --accent-foreground: #1B2A4A;
+  --destructive: #D9483B;
+  --border: #E7E3D4;
+  --input: #E2DECF;
+  --ring: #38A9D6; /* Turquesa */
   --radius: 0.75rem;
+  /* Degradado de marca */
+  --brand-blue: #3B8EDB;
+  --brand-teal: #38BCC4;
+  --brand-lime: #D6DA4A;
   /* Charts */
-  --chart-1: oklch(0.67 0.14 240); /* Cyan */
-  --chart-2: oklch(0.85 0.17 115); /* Yellow */
-  --chart-3: oklch(0.65 0.20 300);
-  --chart-4: oklch(0.75 0.15 80);
-  --chart-5: oklch(0.60 0.22 25);
+  --chart-1: #2F86D6; /* Azul */
+  --chart-2: #8C9712; /* Lima oscuro (legible sobre crema) */
+  --chart-3: #7B5AD0;
+  --chart-4: #C7851A;
+  --chart-5: #D9483B;
   /* Sidebar */
-  --sidebar: oklch(0.14 0.015 260);
-  --sidebar-foreground: oklch(0.85 0.01 260);
-  --sidebar-primary: oklch(0.67 0.14 240); /* Cyan */
-  --sidebar-primary-foreground: oklch(0.12 0.01 260);
-  --sidebar-accent: oklch(0.20 0.025 250);
-  --sidebar-accent-foreground: oklch(0.95 0.01 260);
-  --sidebar-border: oklch(0.25 0.02 260);
-  --sidebar-ring: oklch(0.67 0.14 240); /* Cyan */
+  --sidebar: #FFFDF6;
+  --sidebar-foreground: #3A4760;
+  --sidebar-primary: #2F86D6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E8F2FB;
+  --sidebar-accent-foreground: #1B2A4A;
+  --sidebar-border: #ECE8DA;
+  --sidebar-ring: #38A9D6;
   /* Custom semantic colors */
-  --warning: oklch(0.85 0.17 115); /* Yellow */
-  --warning-foreground: oklch(0.20 0.04 80);
-  --success: oklch(0.70 0.17 155);
-  --success-foreground: oklch(0.20 0.04 155);
-  --info: oklch(0.67 0.14 240); /* Cyan */
-  --info-foreground: oklch(0.12 0.01 260);
+  --warning: #D39A0B;
+  --warning-foreground: #FFFFFF;
+  --success: #1E9E6A;
+  --success-foreground: #FFFFFF;
+  --info: #2F86D6;
+  --info-foreground: #FFFFFF;
 }
 
 @layer base {
@@ -106,6 +110,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Manchas suaves azul/turquesa sobre crema, como en el login */
+    background-image:
+      radial-gradient(ellipse 60% 50% at 0% 0%, rgb(59 142 219 / 0.10), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 100% 100%, rgb(56 188 196 / 0.08), transparent 70%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
@@ -122,26 +131,44 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.30 0.02 260);
+    background: #D6D1C0;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.40 0.02 260);
+    background: #BDB7A2;
   }
 }
 
 /* Glassmorphism utility */
 .glass {
-  background: oklch(0.17 0.015 260 / 0.6);
+  background: rgb(255 253 246 / 0.7);
   backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid oklch(1 0 0 / 0.06);
+  border: 1px solid rgb(27 42 74 / 0.06);
 }
 
 /* Subtle glow for cards */
 .card-glow {
   box-shadow:
-    0 0 40px oklch(0.65 0.18 250 / 0.06),
-    inset 0 1px 0 oklch(1 0 0 / 0.04);
+    0 1px 2px rgb(27 42 74 / 0.04),
+    0 8px 24px rgb(27 42 74 / 0.06);
+}
+
+/* Botón principal: degradado azul → turquesa */
+.bg-brand-gradient {
+  background: linear-gradient(90deg, var(--brand-blue), var(--brand-teal));
+}
+
+/* Línea superior de tarjetas destacadas: azul → turquesa → lima */
+.brand-top-bar {
+  position: relative;
+  overflow: hidden;
+}
+.brand-top-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-blue), var(--brand-teal), var(--brand-lime));
 }
 
 /* Pulse animation for alerts */
@@ -173,5 +200,5 @@
   box-shadow: 0 0 6px oklch(0.80 0.16 80 / 0.5);
 }
 .status-dot.inactive {
-  background: oklch(0.50 0.02 260);
+  background: #B8BFCC;
 }
